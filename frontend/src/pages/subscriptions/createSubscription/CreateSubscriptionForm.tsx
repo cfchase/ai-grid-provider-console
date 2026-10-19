@@ -280,6 +280,7 @@ export const CreateSubscriptionForm: React.FC<Props> = ({ service, modelRefs, su
               setOrganizationTouched(true);
               setOrganizationId(value);
             }}
+            onBlur={() => setOrganizationTouched(true)}
           >
             {(!isEditing || !subscription?.tokenMetadata?.organizationId) && (
               <FormSelectOption value="" label={SELECT_ORGANIZATION} isPlaceholder />
