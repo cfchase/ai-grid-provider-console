@@ -15,7 +15,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai_grid/v1/subscription_type.proto.
  */
 export const file_ai_grid_v1_subscription_type: GenFile = /*@__PURE__*/
-  fileDesc("CiJhaV9ncmlkL3YxL3N1YnNjcmlwdGlvbl90eXBlLnByb3RvEgphaV9ncmlkLnYxIs8BCgxTdWJzY3JpcHRpb24SOwoCaWQYASABKAlCL7pILHIqEAEYPzIkXlthLXowLTldKFthLXowLTktXXswLDYxfVthLXowLTldKT8kEiYKCG1ldGFkYXRhGAIgASgLMhQuYWlfZ3JpZC52MS5NZXRhZGF0YRIqCgRzcGVjGAMgASgLMhwuYWlfZ3JpZC52MS5TdWJzY3JpcHRpb25TcGVjEi4KBnN0YXR1cxgEIAEoCzIeLmFpX2dyaWQudjEuU3Vic2NyaXB0aW9uU3RhdHVzIuQCChBTdWJzY3JpcHRpb25TcGVjEiwKBW93bmVyGAEgASgLMh0uYWlfZ3JpZC52MS5TdWJzY3JpcHRpb25Pd25lchI0Cgptb2RlbF9yZWZzGAIgAygLMiAuYWlfZ3JpZC52MS5TdWJzY3JpcHRpb25Nb2RlbFJlZhIQCghwcmlvcml0eRgDIAEoBRI6Cgxvcmdhbml6YXRpb24YBCABKAsyJC5haV9ncmlkLnYxLlN1YnNjcmlwdGlvbk9yZ2FuaXphdGlvbhIxCg50b2tlbl9tZXRhZGF0YRgFIAEoCzIZLmFpX2dyaWQudjEuVG9rZW5NZXRhZGF0YRIfChJpbmZlcmVuY2VfcHJpb3JpdHkYBiABKAVIAIgBARIzCgpndWFyZHJhaWxzGAcgAygLMh8uYWlfZ3JpZC52MS5HdWFyZHJhaWxBdHRhY2htZW50QhUKE19pbmZlcmVuY2VfcHJpb3JpdHkiMgoYU3Vic2NyaXB0aW9uT3JnYW5pemF0aW9uEhYKAmlkGAEgASgJQgq6SAdyBRABGP0BIjIKEVN1YnNjcmlwdGlvbk93bmVyEg4KBmdyb3VwcxgBIAMoCRINCgV1c2VycxgCIAMoCSLBAgoUU3Vic2NyaXB0aW9uTW9kZWxSZWYSPQoEbmFtZRgBIAEoCUIvukgscioQARg/MiReW2EtejAtOV0oW2EtejAtOS1dezAsNjF9W2EtejAtOV0pPyQSEQoJbmFtZXNwYWNlGAIgASgJEjUKEXRva2VuX3JhdGVfbGltaXRzGAMgAygLMhouYWlfZ3JpZC52MS5Ub2tlblJhdGVMaW1pdBIRCgl1bmxpbWl0ZWQYBCABKAgSLQoMYmlsbGluZ19yYXRlGAUgASgLMhcuYWlfZ3JpZC52MS5CaWxsaW5nUmF0ZRIzCgpndWFyZHJhaWxzGAYgAygLMh8uYWlfZ3JpZC52MS5HdWFyZHJhaWxBdHRhY2htZW50EhQKDGRpc3BsYXlfbmFtZRgHIAEoCRITCgtkZXNjcmlwdGlvbhgIIAEoCSLxAQoOVG9rZW5SYXRlTGltaXQSDQoFbGltaXQYASABKAMSzwEKBndpbmRvdxgCIAEoCUK+AbpIugG6AZ0BCht0b2tlbl9yYXRlX2xpbWl0LndpbmRvdy5tYXgSJ3dpbmRvdyBtdXN0IGJlIGF0IG1vc3QgODc4NGggKDM2NiBkYXlzKRpVIXRoaXMubWF0Y2hlcygnXlsxLTldWzAtOV17MCwzfWgkJykgfHwgaW50KHRoaXMuc3Vic3RyaW5nKDAsIHNpemUodGhpcykgLSAxKSkgPD0gODc4NHIXMhVeWzEtOV1cZHswLDN9KHN8bXxoKSQiIAoLQmlsbGluZ1JhdGUSEQoJcGVyX3Rva2VuGAEgASgJIqMBCg1Ub2tlbk1ldGFkYXRhEhcKD29yZ2FuaXphdGlvbl9pZBgBIAEoCRITCgtjb3N0X2NlbnRlchgCIAEoCRI1CgZsYWJlbHMYAyADKAsyJS5haV9ncmlkLnYxLlRva2VuTWV0YWRhdGEuTGFiZWxzRW50cnkaLQoLTGFiZWxzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASI3ChNHdWFyZHJhaWxBdHRhY2htZW50EhAKCHJlZl9uYW1lGAEgASgJEg4KBmNoZWNrcxgCIAMoCSLOAQoSU3Vic2NyaXB0aW9uU3RhdHVzEg0KBXBoYXNlGAEgASgJEikKCmNvbmRpdGlvbnMYAiADKAsyFS5haV9ncmlkLnYxLkNvbmRpdGlvbhI5ChJtb2RlbF9yZWZfc3RhdHVzZXMYAyADKAsyHS5haV9ncmlkLnYxLlJlc291cmNlUmVmU3RhdHVzEkMKGXRva2VuX3JhdGVfbGltaXRfc3RhdHVzZXMYBCADKAsyIC5haV9ncmlkLnYxLlRva2VuUmF0ZUxpbWl0U3RhdHVzImQKEVJlc291cmNlUmVmU3RhdHVzEgwKBG5hbWUYASABKAkSEQoJbmFtZXNwYWNlGAIgASgJEg0KBXJlYWR5GAMgASgIEg4KBnJlYXNvbhgEIAEoCRIPCgdtZXNzYWdlGAUgASgJIlEKFFRva2VuUmF0ZUxpbWl0U3RhdHVzEioKA3JlZhgBIAEoCzIdLmFpX2dyaWQudjEuUmVzb3VyY2VSZWZTdGF0dXMSDQoFbW9kZWwYAiABKAki3QEKCkF1dGhQb2xpY3kSCgoCaWQYASABKAkSJgoIbWV0YWRhdGEYAiABKAsyFC5haV9ncmlkLnYxLk1ldGFkYXRhEhYKDnN1YmplY3RfZ3JvdXBzGAMgAygJEhUKDXN1YmplY3RfdXNlcnMYBCADKAkSMgoKbW9kZWxfcmVmcxgFIAMoCzIeLmFpX2dyaWQudjEuQXV0aFBvbGljeU1vZGVsUmVmEg0KBXBoYXNlGAYgASgJEikKCmNvbmRpdGlvbnMYByADKAsyFS5haV9ncmlkLnYxLkNvbmRpdGlvbiI1ChJBdXRoUG9saWN5TW9kZWxSZWYSDAoEbmFtZRgBIAEoCRIRCgluYW1lc3BhY2UYAiABKAkigAEKEU1vZGVsUmVnaXN0cmF0aW9uEgwKBG5hbWUYASABKAkSEQoJbmFtZXNwYWNlGAIgASgJEg0KBXBoYXNlGAMgASgJEhAKCGVuZHBvaW50GAQgASgJEikKCmNvbmRpdGlvbnMYBSADKAsyFS5haV9ncmlkLnYxLkNvbmRpdGlvbkJKWkhnaXRodWIuY29tL29zYWMtcHJvamVjdC9haS1ncmlkLXByb3ZpZGVyLWJhY2tlbmQvZ2VuL2FpX2dyaWQvdjE7YWlncmlkdjFiBnByb3RvMw", [file_ai_grid_v1_condition_type, file_ai_grid_v1_metadata_type, file_buf_validate_validate]);
+  fileDesc("CiJhaV9ncmlkL3YxL3N1YnNjcmlwdGlvbl90eXBlLnByb3RvEgphaV9ncmlkLnYxIs8BCgxTdWJzY3JpcHRpb24SOwoCaWQYASABKAlCL7pILHIqEAEYPzIkXlthLXowLTldKFthLXowLTktXXswLDYxfVthLXowLTldKT8kEiYKCG1ldGFkYXRhGAIgASgLMhQuYWlfZ3JpZC52MS5NZXRhZGF0YRIqCgRzcGVjGAMgASgLMhwuYWlfZ3JpZC52MS5TdWJzY3JpcHRpb25TcGVjEi4KBnN0YXR1cxgEIAEoCzIeLmFpX2dyaWQudjEuU3Vic2NyaXB0aW9uU3RhdHVzIuQCChBTdWJzY3JpcHRpb25TcGVjEiwKBW93bmVyGAEgASgLMh0uYWlfZ3JpZC52MS5TdWJzY3JpcHRpb25Pd25lchI0Cgptb2RlbF9yZWZzGAIgAygLMiAuYWlfZ3JpZC52MS5TdWJzY3JpcHRpb25Nb2RlbFJlZhIQCghwcmlvcml0eRgDIAEoBRI6Cgxvcmdhbml6YXRpb24YBCABKAsyJC5haV9ncmlkLnYxLlN1YnNjcmlwdGlvbk9yZ2FuaXphdGlvbhIxCg50b2tlbl9tZXRhZGF0YRgFIAEoCzIZLmFpX2dyaWQudjEuVG9rZW5NZXRhZGF0YRIfChJpbmZlcmVuY2VfcHJpb3JpdHkYBiABKAVIAIgBARIzCgpndWFyZHJhaWxzGAcgAygLMh8uYWlfZ3JpZC52MS5HdWFyZHJhaWxBdHRhY2htZW50QhUKE19pbmZlcmVuY2VfcHJpb3JpdHkiMgoYU3Vic2NyaXB0aW9uT3JnYW5pemF0aW9uEhYKAmlkGAEgASgJQgq6SAdyBRABGP0BIjIKEVN1YnNjcmlwdGlvbk93bmVyEg4KBmdyb3VwcxgBIAMoCRINCgV1c2VycxgCIAMoCSKFAwoUU3Vic2NyaXB0aW9uTW9kZWxSZWYSPQoEbmFtZRgBIAEoCUIvukgscioQARg/MiReW2EtejAtOV0oW2EtejAtOS1dezAsNjF9W2EtejAtOV0pPyQSEQoJbmFtZXNwYWNlGAIgASgJEjUKEXRva2VuX3JhdGVfbGltaXRzGAMgAygLMhouYWlfZ3JpZC52MS5Ub2tlblJhdGVMaW1pdBIRCgl1bmxpbWl0ZWQYBCABKAgSLQoMYmlsbGluZ19yYXRlGAUgASgLMhcuYWlfZ3JpZC52MS5CaWxsaW5nUmF0ZRIzCgpndWFyZHJhaWxzGAYgAygLMh8uYWlfZ3JpZC52MS5HdWFyZHJhaWxBdHRhY2htZW50EhQKDGRpc3BsYXlfbmFtZRgHIAEoCRITCgtkZXNjcmlwdGlvbhgIIAEoCRJCCghtb2RlbF9pZBgJIAEoCUIwukgt2AEBcigYPzIkXlthLXowLTldKFthLXowLTktXXswLDYxfVthLXowLTldKT8kIvEBCg5Ub2tlblJhdGVMaW1pdBINCgVsaW1pdBgBIAEoAxLPAQoGd2luZG93GAIgASgJQr4Buki6AboBnQEKG3Rva2VuX3JhdGVfbGltaXQud2luZG93Lm1heBInd2luZG93IG11c3QgYmUgYXQgbW9zdCA4Nzg0aCAoMzY2IGRheXMpGlUhdGhpcy5tYXRjaGVzKCdeWzEtOV1bMC05XXswLDN9aCQnKSB8fCBpbnQodGhpcy5zdWJzdHJpbmcoMCwgc2l6ZSh0aGlzKSAtIDEpKSA8PSA4Nzg0chcyFV5bMS05XVxkezAsM30oc3xtfGgpJCIgCgtCaWxsaW5nUmF0ZRIRCglwZXJfdG9rZW4YASABKAkiowEKDVRva2VuTWV0YWRhdGESFwoPb3JnYW5pemF0aW9uX2lkGAEgASgJEhMKC2Nvc3RfY2VudGVyGAIgASgJEjUKBmxhYmVscxgDIAMoCzIlLmFpX2dyaWQudjEuVG9rZW5NZXRhZGF0YS5MYWJlbHNFbnRyeRotCgtMYWJlbHNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIjcKE0d1YXJkcmFpbEF0dGFjaG1lbnQSEAoIcmVmX25hbWUYASABKAkSDgoGY2hlY2tzGAIgAygJIs4BChJTdWJzY3JpcHRpb25TdGF0dXMSDQoFcGhhc2UYASABKAkSKQoKY29uZGl0aW9ucxgCIAMoCzIVLmFpX2dyaWQudjEuQ29uZGl0aW9uEjkKEm1vZGVsX3JlZl9zdGF0dXNlcxgDIAMoCzIdLmFpX2dyaWQudjEuUmVzb3VyY2VSZWZTdGF0dXMSQwoZdG9rZW5fcmF0ZV9saW1pdF9zdGF0dXNlcxgEIAMoCzIgLmFpX2dyaWQudjEuVG9rZW5SYXRlTGltaXRTdGF0dXMiZAoRUmVzb3VyY2VSZWZTdGF0dXMSDAoEbmFtZRgBIAEoCRIRCgluYW1lc3BhY2UYAiABKAkSDQoFcmVhZHkYAyABKAgSDgoGcmVhc29uGAQgASgJEg8KB21lc3NhZ2UYBSABKAkiUQoUVG9rZW5SYXRlTGltaXRTdGF0dXMSKgoDcmVmGAEgASgLMh0uYWlfZ3JpZC52MS5SZXNvdXJjZVJlZlN0YXR1cxINCgVtb2RlbBgCIAEoCSLdAQoKQXV0aFBvbGljeRIKCgJpZBgBIAEoCRImCghtZXRhZGF0YRgCIAEoCzIULmFpX2dyaWQudjEuTWV0YWRhdGESFgoOc3ViamVjdF9ncm91cHMYAyADKAkSFQoNc3ViamVjdF91c2VycxgEIAMoCRIyCgptb2RlbF9yZWZzGAUgAygLMh4uYWlfZ3JpZC52MS5BdXRoUG9saWN5TW9kZWxSZWYSDQoFcGhhc2UYBiABKAkSKQoKY29uZGl0aW9ucxgHIAMoCzIVLmFpX2dyaWQudjEuQ29uZGl0aW9uIjUKEkF1dGhQb2xpY3lNb2RlbFJlZhIMCgRuYW1lGAEgASgJEhEKCW5hbWVzcGFjZRgCIAEoCSKAAQoRTW9kZWxSZWdpc3RyYXRpb24SDAoEbmFtZRgBIAEoCRIRCgluYW1lc3BhY2UYAiABKAkSDQoFcGhhc2UYAyABKAkSEAoIZW5kcG9pbnQYBCABKAkSKQoKY29uZGl0aW9ucxgFIAMoCzIVLmFpX2dyaWQudjEuQ29uZGl0aW9uQkpaSGdpdGh1Yi5jb20vb3NhYy1wcm9qZWN0L2FpLWdyaWQtcHJvdmlkZXItYmFja2VuZC9nZW4vYWlfZ3JpZC92MTthaWdyaWR2MWIGcHJvdG8z", [file_ai_grid_v1_condition_type, file_ai_grid_v1_metadata_type, file_buf_validate_validate]);
 
 /**
  * Subscription is a MaaS entitlement that binds identity subjects to models
@@ -90,7 +90,8 @@ export type SubscriptionSpec = Message<"ai_grid.v1.SubscriptionSpec"> & {
   priority: number;
 
   /**
-   * Stable organization association. May be set once; then immutable.
+   * The organization that administers the subscription. Required: Create
+   * and Update answer InvalidArgument without it. Immutable once set.
    *
    * @generated from field: ai_grid.v1.SubscriptionOrganization organization = 4;
    */
@@ -133,7 +134,9 @@ export const SubscriptionSpecSchema: GenMessage<SubscriptionSpec> = /*@__PURE__*
  */
 export type SubscriptionOrganization = Message<"ai_grid.v1.SubscriptionOrganization"> & {
   /**
-   * Organization identifier. Non-empty; immutable once set.
+   * Organization identifier: the Tenant's id. Required, and an RFC 1123 DNS
+   * label, because the backend qualifies owner groups as <id>/<group>;
+   * immutable once set.
    *
    * @generated from field: string id = 1;
    */
@@ -189,7 +192,10 @@ export type SubscriptionModelRef = Message<"ai_grid.v1.SubscriptionModelRef"> & 
   name: string;
 
   /**
-   * Model namespace. Empty means the platform default model namespace.
+   * Model namespace. Empty means the platform default model namespace: the
+   * subscription's own namespace, where the Models API publishes each
+   * model's MaaSModelRef (not the namespace its LLMInferenceService runs in).
+   * The backend writes it filled in, so reads return it.
    *
    * @generated from field: string namespace = 2;
    */
@@ -226,6 +232,9 @@ export type SubscriptionModelRef = Message<"ai_grid.v1.SubscriptionModelRef"> & 
 
   /**
    * Output enrichment from MaaSModelRef annotations. Ignored on write.
+   * The openshift.io/display-name annotation of the MaaSModelRef this ref
+   * names, which the Models API copies from the Model's own annotation. Set
+   * only with model_id; empty when the model has no display name.
    *
    * @generated from field: string display_name = 7;
    */
@@ -233,10 +242,26 @@ export type SubscriptionModelRef = Message<"ai_grid.v1.SubscriptionModelRef"> & 
 
   /**
    * Output enrichment from MaaSModelRef annotations. Ignored on write.
+   * The openshift.io/description annotation of the same MaaSModelRef, as
+   * display_name.
    *
    * @generated from field: string description = 8;
    */
   description: string;
+
+  /**
+   * Output only; ignored on write. The id of the Model (ai_grid.v1.Models)
+   * this ref names: set when name and namespace are those of the MaaSModelRef
+   * the Models API publishes for that model, the one in its catalog entry.
+   * Empty when the ref names a MaaSModelRef the Models API didn't write: in
+   * another namespace, or for a model the catalog doesn't have. A client
+   * joins a ref to its model by model_id == Model.id, with no namespace of
+   * its own; on write it sends the model's id as name and leaves namespace
+   * empty.
+   *
+   * @generated from field: string model_id = 9;
+   */
+  modelId: string;
 };
 
 /**

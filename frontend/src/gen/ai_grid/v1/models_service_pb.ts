@@ -169,9 +169,18 @@ export type ModelsUpdateRequest = Message<"ai_grid.v1.ModelsUpdateRequest"> & {
   object?: Model | undefined;
 
   /**
-   * Supported paths: spec.replicas, spec.main.image, spec.main.env,
-   * spec.placement, spec.rollout, metadata.labels, metadata.annotations.
-   * A path replaces that field as a whole. Empty mask is InvalidArgument.
+   * Supported paths: metadata.labels, metadata.annotations, spec.model,
+   * spec.replicas, spec.base_refs, spec.runtime, spec.router, spec.main,
+   * spec.main.image, spec.main.env, spec.main.requests, spec.main.limits,
+   * spec.scaling, spec.placement and spec.rollout, each optionally prefixed
+   * with "object.". A path replaces that field as a whole. A path below
+   * metadata.labels, metadata.annotations, spec.model, spec.router,
+   * spec.main.env, spec.main.requests, spec.main.limits, spec.scaling,
+   * spec.placement or spec.rollout (for example metadata.labels.<key>) is
+   * accepted and replaces that whole field, not just the key. Any other path
+   * is InvalidArgument, and so is an empty mask. spec.replicas and
+   * spec.scaling are exclusive: setting one clears the other. The merged
+   * model is validated as on Create.
    *
    * @generated from field: google.protobuf.FieldMask update_mask = 2;
    */

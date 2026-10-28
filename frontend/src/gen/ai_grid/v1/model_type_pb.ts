@@ -15,7 +15,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai_grid/v1/model_type.proto.
  */
 export const file_ai_grid_v1_model_type: GenFile = /*@__PURE__*/
-  fileDesc("ChthaV9ncmlkL3YxL21vZGVsX3R5cGUucHJvdG8SCmFpX2dyaWQudjEiugEKBU1vZGVsEjsKAmlkGAEgASgJQi+6SCxyKhABGD8yJF5bYS16MC05XShbYS16MC05LV17MCw2MX1bYS16MC05XSk/JBImCghtZXRhZGF0YRgCIAEoCzIULmFpX2dyaWQudjEuTWV0YWRhdGESIwoEc3BlYxgDIAEoCzIVLmFpX2dyaWQudjEuTW9kZWxTcGVjEicKBnN0YXR1cxgEIAEoCzIXLmFpX2dyaWQudjEuTW9kZWxTdGF0dXMi0wIKCU1vZGVsU3BlYxImCgVtb2RlbBgBIAEoCzIXLmFpX2dyaWQudjEuTW9kZWxTb3VyY2USFQoIcmVwbGljYXMYAiABKAVIAIgBARIRCgliYXNlX3JlZnMYAyADKAkSDwoHcnVudGltZRgEIAEoCRInCgZyb3V0ZXIYBSABKAsyFy5haV9ncmlkLnYxLk1vZGVsUm91dGVyEigKBG1haW4YBiABKAsyGi5haV9ncmlkLnYxLk1vZGVsQ29udGFpbmVyEikKB3NjYWxpbmcYByABKAsyGC5haV9ncmlkLnYxLk1vZGVsU2NhbGluZxItCglwbGFjZW1lbnQYCCABKAsyGi5haV9ncmlkLnYxLk1vZGVsUGxhY2VtZW50EikKB3JvbGxvdXQYCSABKAsyGC5haV9ncmlkLnYxLk1vZGVsUm9sbG91dEILCglfcmVwbGljYXMiNAoLTW9kZWxTb3VyY2USFwoDdXJpGAEgASgJQgq6SAdyBRABGIAQEgwKBG5hbWUYAiABKAkiagoLTW9kZWxSb3V0ZXISMQoMZ2F0ZXdheV9yZWZzGAEgAygLMhsuYWlfZ3JpZC52MS5Nb2RlbEdhdGV3YXlSZWYSFQoNbWFuYWdlZF9yb3V0ZRgCIAEoCBIRCglzY2hlZHVsZXIYAyABKAgiSAoPTW9kZWxHYXRld2F5UmVmEgwKBG5hbWUYASABKAkSEQoJbmFtZXNwYWNlGAIgASgJEhQKDHNlY3Rpb25fbmFtZRgDIAEoCSKZAgoOTW9kZWxDb250YWluZXISDQoFaW1hZ2UYASABKAkSOgoIcmVxdWVzdHMYAiADKAsyKC5haV9ncmlkLnYxLk1vZGVsQ29udGFpbmVyLlJlcXVlc3RzRW50cnkSNgoGbGltaXRzGAMgAygLMiYuYWlfZ3JpZC52MS5Nb2RlbENvbnRhaW5lci5MaW1pdHNFbnRyeRIkCgNlbnYYBCADKAsyFy5haV9ncmlkLnYxLk1vZGVsRW52VmFyGi8KDVJlcXVlc3RzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ARotCgtMaW1pdHNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIioKC01vZGVsRW52VmFyEgwKBG5hbWUYASABKAkSDQoFdmFsdWUYAiABKAkieAoMTW9kZWxTY2FsaW5nEhQKDG1pbl9yZXBsaWNhcxgBIAEoBRIUCgxtYXhfcmVwbGljYXMYAiABKAUSDAoEa2VkYRgDIAEoCBIuCgh0cmlnZ2VycxgEIAMoCzIcLmFpX2dyaWQudjEuTW9kZWxLZWRhVHJpZ2dlciKPAQoQTW9kZWxLZWRhVHJpZ2dlchIMCgR0eXBlGAEgASgJEjwKCG1ldGFkYXRhGAIgAygLMiouYWlfZ3JpZC52MS5Nb2RlbEtlZGFUcmlnZ2VyLk1ldGFkYXRhRW50cnkaLwoNTWV0YWRhdGFFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIpYBCg5Nb2RlbFBsYWNlbWVudBIUCgxjbHVzdGVyX3NldHMYASADKAkSNgoObGFiZWxfc2VsZWN0b3IYAiABKAsyHi5haV9ncmlkLnYxLk1vZGVsTGFiZWxTZWxlY3RvchIfChJudW1iZXJfb2ZfY2x1c3RlcnMYAyABKAVIAIgBAUIVChNfbnVtYmVyX29mX2NsdXN0ZXJzItUBChJNb2RlbExhYmVsU2VsZWN0b3ISRQoMbWF0Y2hfbGFiZWxzGAEgAygLMi8uYWlfZ3JpZC52MS5Nb2RlbExhYmVsU2VsZWN0b3IuTWF0Y2hMYWJlbHNFbnRyeRJEChFtYXRjaF9leHByZXNzaW9ucxgCIAMoCzIpLmFpX2dyaWQudjEuTW9kZWxMYWJlbFNlbGVjdG9yUmVxdWlyZW1lbnQaMgoQTWF0Y2hMYWJlbHNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIk4KHU1vZGVsTGFiZWxTZWxlY3RvclJlcXVpcmVtZW50EgsKA2tleRgBIAEoCRIQCghvcGVyYXRvchgCIAEoCRIOCgZ2YWx1ZXMYAyADKAkipgEKDE1vZGVsUm9sbG91dBIyCghzdHJhdGVneRgBIAEoDjIgLmFpX2dyaWQudjEuTW9kZWxSb2xsb3V0U3RyYXRlZ3kSFwoPbWF4X2NvbmN1cnJlbmN5GAIgASgJEhQKDG1heF9mYWlsdXJlcxgDIAEoCRIZChFwcm9ncmVzc19kZWFkbGluZRgEIAEoCRIYChBtaW5fc3VjY2Vzc190aW1lGAUgASgJIpACCgtNb2RlbFN0YXR1cxILCgN1cmwYASABKAkSKQoKY29uZGl0aW9ucxgCIAMoCzIVLmFpX2dyaWQudjEuQ29uZGl0aW9uEiUKBXBoYXNlGAMgASgOMhYuYWlfZ3JpZC52MS5Nb2RlbFBoYXNlEg4KBnJlYXNvbhgEIAEoCRIPCgdtZXNzYWdlGAUgASgJEjMKCXBsYWNlbWVudBgGIAEoCzIgLmFpX2dyaWQudjEuTW9kZWxQbGFjZW1lbnRTdGF0dXMSLwoHcm9sbG91dBgHIAEoCzIeLmFpX2dyaWQudjEuTW9kZWxSb2xsb3V0U3RhdHVzEhsKE29ic2VydmVkX2dlbmVyYXRpb24YCCABKAMilAEKFE1vZGVsUGxhY2VtZW50U3RhdHVzEiMKG251bWJlcl9vZl9zZWxlY3RlZF9jbHVzdGVycxgBIAEoBRIZChFzZWxlY3RlZF9jbHVzdGVycxgCIAMoCRIpCgpjb25kaXRpb25zGAMgAygLMhUuYWlfZ3JpZC52MS5Db25kaXRpb24SEQoJbG9jYXRpb25zGAQgAygJIqABChJNb2RlbFJvbGxvdXRTdGF0dXMSEgoKcm9sbGVkX291dBgBIAEoCBIPCgdhcHBsaWVkGAIgASgIEg4KBnJlYXNvbhgDIAEoCRIqCgV3b3JrcxgEIAMoCzIbLmFpX2dyaWQudjEuTW9kZWxXb3JrU3RhdHVzEikKCmNvbmRpdGlvbnMYBSADKAsyFS5haV9ncmlkLnYxLkNvbmRpdGlvbiJtCg9Nb2RlbFdvcmtTdGF0dXMSDwoHY2x1c3RlchgBIAEoCRIPCgdhcHBsaWVkGAIgASgJEhEKCWF2YWlsYWJsZRgDIAEoCRITCgtwcm9ncmVzc2luZxgEIAEoCRIQCghkZWdyYWRlZBgFIAEoCSq4AQoUTW9kZWxSb2xsb3V0U3RyYXRlZ3kSJgoiTU9ERUxfUk9MTE9VVF9TVFJBVEVHWV9VTlNQRUNJRklFRBAAEh4KGk1PREVMX1JPTExPVVRfU1RSQVRFR1lfQUxMEAESJgoiTU9ERUxfUk9MTE9VVF9TVFJBVEVHWV9QUk9HUkVTU0lWRRACEjAKLE1PREVMX1JPTExPVVRfU1RSQVRFR1lfUFJPR1JFU1NJVkVfUEVSX0dST1VQEAMqcQoKTW9kZWxQaGFzZRIbChdNT0RFTF9QSEFTRV9VTlNQRUNJRklFRBAAEhcKE01PREVMX1BIQVNFX1BFTkRJTkcQARIVChFNT0RFTF9QSEFTRV9SRUFEWRACEhYKEk1PREVMX1BIQVNFX0ZBSUxFRBADQkpaSGdpdGh1Yi5jb20vb3NhYy1wcm9qZWN0L2FpLWdyaWQtcHJvdmlkZXItYmFja2VuZC9nZW4vYWlfZ3JpZC92MTthaWdyaWR2MWIGcHJvdG8z", [file_ai_grid_v1_condition_type, file_ai_grid_v1_metadata_type, file_buf_validate_validate]);
+  fileDesc("ChthaV9ncmlkL3YxL21vZGVsX3R5cGUucHJvdG8SCmFpX2dyaWQudjEiugEKBU1vZGVsEjsKAmlkGAEgASgJQi+6SCxyKhABGD8yJF5bYS16MC05XShbYS16MC05LV17MCw2MX1bYS16MC05XSk/JBImCghtZXRhZGF0YRgCIAEoCzIULmFpX2dyaWQudjEuTWV0YWRhdGESIwoEc3BlYxgDIAEoCzIVLmFpX2dyaWQudjEuTW9kZWxTcGVjEicKBnN0YXR1cxgEIAEoCzIXLmFpX2dyaWQudjEuTW9kZWxTdGF0dXMijgQKCU1vZGVsU3BlYxImCgVtb2RlbBgBIAEoCzIXLmFpX2dyaWQudjEuTW9kZWxTb3VyY2USFQoIcmVwbGljYXMYAiABKAVIAIgBARIkCgliYXNlX3JlZnMYAyADKAlCEbpIDpIBCyIJcgcyBV5cUyskEg8KB3J1bnRpbWUYBCABKAkSJwoGcm91dGVyGAUgASgLMhcuYWlfZ3JpZC52MS5Nb2RlbFJvdXRlchIoCgRtYWluGAYgASgLMhouYWlfZ3JpZC52MS5Nb2RlbENvbnRhaW5lchIpCgdzY2FsaW5nGAcgASgLMhguYWlfZ3JpZC52MS5Nb2RlbFNjYWxpbmcSLQoJcGxhY2VtZW50GAggASgLMhouYWlfZ3JpZC52MS5Nb2RlbFBsYWNlbWVudBIpCgdyb2xsb3V0GAkgASgLMhguYWlfZ3JpZC52MS5Nb2RlbFJvbGxvdXQ6pQG6SKEBGp4BChVtb2RlbF9zcGVjLm1haW5faW1hZ2USP3NwZWMubWFpbi5pbWFnZSBpcyByZXF1aXJlZCB3aGVuIHNwZWMuYmFzZV9yZWZzIG5hbWVzIG5vIHByZXNldBpEIWhhcyh0aGlzLm1haW4pIHx8IHRoaXMubWFpbi5pbWFnZSAhPSAnJyB8fCBzaXplKHRoaXMuYmFzZV9yZWZzKSA+IDBCCwoJX3JlcGxpY2FzIjQKC01vZGVsU291cmNlEhcKA3VyaRgBIAEoCUIKukgHcgUQARiAEBIMCgRuYW1lGAIgASgJImoKC01vZGVsUm91dGVyEjEKDGdhdGV3YXlfcmVmcxgBIAMoCzIbLmFpX2dyaWQudjEuTW9kZWxHYXRld2F5UmVmEhUKDW1hbmFnZWRfcm91dGUYAiABKAgSEQoJc2NoZWR1bGVyGAMgASgIIkgKD01vZGVsR2F0ZXdheVJlZhIMCgRuYW1lGAEgASgJEhEKCW5hbWVzcGFjZRgCIAEoCRIUCgxzZWN0aW9uX25hbWUYAyABKAkijQMKDk1vZGVsQ29udGFpbmVyEg0KBWltYWdlGAEgASgJEnQKCHJlcXVlc3RzGAIgAygLMiguYWlfZ3JpZC52MS5Nb2RlbENvbnRhaW5lci5SZXF1ZXN0c0VudHJ5Qji6SDWaATIiBHICEAEqKnIoMiZeXCs/WzAtOS5dK1tlRWludW1rS01HVFBdKlstK10/WzAtOV0qJBJwCgZsaW1pdHMYAyADKAsyJi5haV9ncmlkLnYxLk1vZGVsQ29udGFpbmVyLkxpbWl0c0VudHJ5Qji6SDWaATIiBHICEAEqKnIoMiZeXCs/WzAtOS5dK1tlRWludW1rS01HVFBdKlstK10/WzAtOV0qJBIkCgNlbnYYBCADKAsyFy5haV9ncmlkLnYxLk1vZGVsRW52VmFyGi8KDVJlcXVlc3RzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ARotCgtMaW1pdHNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIioKC01vZGVsRW52VmFyEgwKBG5hbWUYASABKAkSDQoFdmFsdWUYAiABKAkieAoMTW9kZWxTY2FsaW5nEhQKDG1pbl9yZXBsaWNhcxgBIAEoBRIUCgxtYXhfcmVwbGljYXMYAiABKAUSDAoEa2VkYRgDIAEoCBIuCgh0cmlnZ2VycxgEIAMoCzIcLmFpX2dyaWQudjEuTW9kZWxLZWRhVHJpZ2dlciKPAQoQTW9kZWxLZWRhVHJpZ2dlchIMCgR0eXBlGAEgASgJEjwKCG1ldGFkYXRhGAIgAygLMiouYWlfZ3JpZC52MS5Nb2RlbEtlZGFUcmlnZ2VyLk1ldGFkYXRhRW50cnkaLwoNTWV0YWRhdGFFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIpYBCg5Nb2RlbFBsYWNlbWVudBIUCgxjbHVzdGVyX3NldHMYASADKAkSNgoObGFiZWxfc2VsZWN0b3IYAiABKAsyHi5haV9ncmlkLnYxLk1vZGVsTGFiZWxTZWxlY3RvchIfChJudW1iZXJfb2ZfY2x1c3RlcnMYAyABKAVIAIgBAUIVChNfbnVtYmVyX29mX2NsdXN0ZXJzItUBChJNb2RlbExhYmVsU2VsZWN0b3ISRQoMbWF0Y2hfbGFiZWxzGAEgAygLMi8uYWlfZ3JpZC52MS5Nb2RlbExhYmVsU2VsZWN0b3IuTWF0Y2hMYWJlbHNFbnRyeRJEChFtYXRjaF9leHByZXNzaW9ucxgCIAMoCzIpLmFpX2dyaWQudjEuTW9kZWxMYWJlbFNlbGVjdG9yUmVxdWlyZW1lbnQaMgoQTWF0Y2hMYWJlbHNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIk4KHU1vZGVsTGFiZWxTZWxlY3RvclJlcXVpcmVtZW50EgsKA2tleRgBIAEoCRIQCghvcGVyYXRvchgCIAEoCRIOCgZ2YWx1ZXMYAyADKAkipgEKDE1vZGVsUm9sbG91dBIyCghzdHJhdGVneRgBIAEoDjIgLmFpX2dyaWQudjEuTW9kZWxSb2xsb3V0U3RyYXRlZ3kSFwoPbWF4X2NvbmN1cnJlbmN5GAIgASgJEhQKDG1heF9mYWlsdXJlcxgDIAEoCRIZChFwcm9ncmVzc19kZWFkbGluZRgEIAEoCRIYChBtaW5fc3VjY2Vzc190aW1lGAUgASgJIsICCgtNb2RlbFN0YXR1cxILCgN1cmwYASABKAkSKQoKY29uZGl0aW9ucxgCIAMoCzIVLmFpX2dyaWQudjEuQ29uZGl0aW9uEiUKBXBoYXNlGAMgASgOMhYuYWlfZ3JpZC52MS5Nb2RlbFBoYXNlEg4KBnJlYXNvbhgEIAEoCRIPCgdtZXNzYWdlGAUgASgJEjMKCXBsYWNlbWVudBgGIAEoCzIgLmFpX2dyaWQudjEuTW9kZWxQbGFjZW1lbnRTdGF0dXMSLwoHcm9sbG91dBgHIAEoCzIeLmFpX2dyaWQudjEuTW9kZWxSb2xsb3V0U3RhdHVzEhsKE29ic2VydmVkX2dlbmVyYXRpb24YCCABKAMSMAoIY2x1c3RlcnMYCSADKAsyHi5haV9ncmlkLnYxLk1vZGVsQ2x1c3RlclN0YXR1cyK1AQoSTW9kZWxDbHVzdGVyU3RhdHVzEkAKB2NsdXN0ZXIYASABKAlCL7pILHIqEAEYPzIkXlthLXowLTldKFthLXowLTktXXswLDYxfVthLXowLTldKT8kEjMKBXBoYXNlGAIgASgOMhYuYWlfZ3JpZC52MS5Nb2RlbFBoYXNlQgy6SAmCAQYQASAAIAQSFwoGcmVhc29uGAMgASgJQge6SARyAhABEg8KB21lc3NhZ2UYBCABKAkilAEKFE1vZGVsUGxhY2VtZW50U3RhdHVzEiMKG251bWJlcl9vZl9zZWxlY3RlZF9jbHVzdGVycxgBIAEoBRIZChFzZWxlY3RlZF9jbHVzdGVycxgCIAMoCRIpCgpjb25kaXRpb25zGAMgAygLMhUuYWlfZ3JpZC52MS5Db25kaXRpb24SEQoJbG9jYXRpb25zGAQgAygJIqABChJNb2RlbFJvbGxvdXRTdGF0dXMSEgoKcm9sbGVkX291dBgBIAEoCBIPCgdhcHBsaWVkGAIgASgIEg4KBnJlYXNvbhgDIAEoCRIqCgV3b3JrcxgEIAMoCzIbLmFpX2dyaWQudjEuTW9kZWxXb3JrU3RhdHVzEikKCmNvbmRpdGlvbnMYBSADKAsyFS5haV9ncmlkLnYxLkNvbmRpdGlvbiJtCg9Nb2RlbFdvcmtTdGF0dXMSDwoHY2x1c3RlchgBIAEoCRIPCgdhcHBsaWVkGAIgASgJEhEKCWF2YWlsYWJsZRgDIAEoCRITCgtwcm9ncmVzc2luZxgEIAEoCRIQCghkZWdyYWRlZBgFIAEoCSq4AQoUTW9kZWxSb2xsb3V0U3RyYXRlZ3kSJgoiTU9ERUxfUk9MTE9VVF9TVFJBVEVHWV9VTlNQRUNJRklFRBAAEh4KGk1PREVMX1JPTExPVVRfU1RSQVRFR1lfQUxMEAESJgoiTU9ERUxfUk9MTE9VVF9TVFJBVEVHWV9QUk9HUkVTU0lWRRACEjAKLE1PREVMX1JPTExPVVRfU1RSQVRFR1lfUFJPR1JFU1NJVkVfUEVSX0dST1VQEAMqlgEKCk1vZGVsUGhhc2USGwoXTU9ERUxfUEhBU0VfVU5TUEVDSUZJRUQQABIXChNNT0RFTF9QSEFTRV9QRU5ESU5HEAESFQoRTU9ERUxfUEhBU0VfUkVBRFkQAhIWChJNT0RFTF9QSEFTRV9GQUlMRUQQAxIjCh9NT0RFTF9QSEFTRV9QQVJUSUFMTFlfQVZBSUxBQkxFEARCSlpIZ2l0aHViLmNvbS9vc2FjLXByb2plY3QvYWktZ3JpZC1wcm92aWRlci1iYWNrZW5kL2dlbi9haV9ncmlkL3YxO2FpZ3JpZHYxYgZwcm90bzM", [file_ai_grid_v1_condition_type, file_ai_grid_v1_metadata_type, file_buf_validate_validate]);
 
 /**
  * Model is a deployable LLM inference workload on the AI Grid.
@@ -82,7 +82,8 @@ export type ModelSpec = Message<"ai_grid.v1.ModelSpec"> & {
   replicas?: number | undefined;
 
   /**
-   * LLMInferenceServiceConfig preset names merged under the spec.
+   * LLMInferenceServiceConfig preset names merged under the spec. Each is a
+   * name with no whitespace; an empty or blank name is InvalidArgument.
    *
    * @generated from field: repeated string base_refs = 3;
    */
@@ -103,7 +104,8 @@ export type ModelSpec = Message<"ai_grid.v1.ModelSpec"> & {
   router?: ModelRouter | undefined;
 
   /**
-   * Main container of the workload template.
+   * Main container of the workload template. Its image may be empty only
+   * when base_refs names a preset (see ModelContainer.image).
    *
    * @generated from field: ai_grid.v1.ModelContainer main = 6;
    */
@@ -247,21 +249,44 @@ export const ModelGatewayRefSchema: GenMessage<ModelGatewayRef> = /*@__PURE__*/
  */
 export type ModelContainer = Message<"ai_grid.v1.ModelContainer"> & {
   /**
-   * Runtime image. Empty uses the preset's.
+   * Runtime image. Required when spec.base_refs is empty. With base_refs it
+   * may be empty, and the presets' image applies: KServe merges the
+   * LLMInferenceServiceConfigs named in baseRefs under the service's own
+   * spec, and an empty image in the service doesn't override theirs
+   * (combineBaseRefsConfig and mergeSpecs in
+   * pkg/controller/v1alpha2/llmisvc/config_merge.go,
+   * red-hat-data-services/kserve rhoai-3.6 at 40fa1a1). The backend can't
+   * see the presets on the clusters, so it can't check that one sets an
+   * image: if none does, Kubernetes refuses the workload on the cluster
+   * ("image: Required value"), the model never becomes ready there, and its
+   * status says so. A blank image, or one with a space or tab, is
+   * InvalidArgument.
    *
    * @generated from field: string image = 1;
    */
   image: string;
 
   /**
-   * Resource requests (cpu, memory, nvidia.com/gpu, ...).
+   * Resource requests (cpu, memory, nvidia.com/gpu, ...): Kubernetes
+   * quantities, which must parse and be non-negative. The values the
+   * container can't have are InvalidArgument, as Kubernetes would refuse
+   * them on every cluster: an extended resource such as nvidia.com/gpu that
+   * isn't a whole number, a request above its limit, and, for the resources
+   * Kubernetes can't overcommit (extended resources and hugepages-*), a
+   * request that differs from its limit. Such a resource with a request and
+   * no limit is saved with the request as its limit, as Kubernetes requires
+   * the limit (validateResourceRequirements in kubernetes/kubernetes
+   * pkg/apis/core/validation). An Update that replaces requests and not
+   * limits drops each such limit that equalled its saved request, so the
+   * limit follows the new request, and a removed request takes its limit
+   * with it. A rule across the two maps is checked by the server only.
    *
    * @generated from field: map<string, string> requests = 2;
    */
   requests: { [key: string]: string };
 
   /**
-   * Resource limits.
+   * Resource limits: Kubernetes quantities, as requests.
    *
    * @generated from field: map<string, string> limits = 3;
    */
@@ -530,21 +555,25 @@ export type ModelStatus = Message<"ai_grid.v1.ModelStatus"> & {
   conditions: Condition[];
 
   /**
-   * Derived summary phase.
+   * Derived summary phase (see ModelPhase).
    *
    * @generated from field: ai_grid.v1.ModelPhase phase = 3;
    */
   phase: ModelPhase;
 
   /**
-   * Reason of the condition that decided phase.
+   * Reason of the condition that decided phase. In git mode: SavedToGit
+   * while no cluster has reported, else Ready, PartiallyAvailable or
+   * NotReady with the phase.
    *
    * @generated from field: string reason = 4;
    */
   reason: string;
 
   /**
-   * Message of the condition that decided phase.
+   * Message of the condition that decided phase. In git mode, while a
+   * cluster has reported: where the model is ready, for example "Not ready
+   * on site-a; ready on site-b; no report from site-c".
    *
    * @generated from field: string message = 5;
    */
@@ -558,7 +587,9 @@ export type ModelStatus = Message<"ai_grid.v1.ModelStatus"> & {
   placement?: ModelPlacementStatus | undefined;
 
   /**
-   * ManifestWorkReplicaSet status when placement is set.
+   * ManifestWorkReplicaSet status when placement is set. Git mode has no
+   * ManifestWorkReplicaSet and never sets it; each placed cluster's status
+   * is in `clusters`.
    *
    * @generated from field: ai_grid.v1.ModelRolloutStatus rollout = 7;
    */
@@ -570,6 +601,18 @@ export type ModelStatus = Message<"ai_grid.v1.ModelStatus"> & {
    * @generated from field: int64 observed_generation = 8;
    */
   observedGeneration: bigint;
+
+  /**
+   * The model on each cluster its placement names (the clusters in
+   * placement.selected_clusters), one entry per cluster in cluster-name
+   * order, from what the hub's status Policies report. Empty while no
+   * cluster has reported (reason SavedToGit). Ingress clusters the model
+   * isn't placed on, which publish it but don't run it, have no entry; their
+   * reports count in `phase` and `message`. Output only.
+   *
+   * @generated from field: repeated ai_grid.v1.ModelClusterStatus clusters = 9;
+   */
+  clusters: ModelClusterStatus[];
 };
 
 /**
@@ -578,6 +621,56 @@ export type ModelStatus = Message<"ai_grid.v1.ModelStatus"> & {
  */
 export const ModelStatusSchema: GenMessage<ModelStatus> = /*@__PURE__*/
   messageDesc(file_ai_grid_v1_model_type, 13);
+
+/**
+ * The model on one placed cluster. In git mode it comes from the hub's
+ * status Policies: the cluster's models-ready report of the model's
+ * LLMInferenceService (Ready=True), and, on a combined cluster, which is
+ * also an ingress cluster, its model-refs-ready report of the model's
+ * MaaSModelRef (phase Ready). Output only.
+ *
+ * @generated from message ai_grid.v1.ModelClusterStatus
+ */
+export type ModelClusterStatus = Message<"ai_grid.v1.ModelClusterStatus"> & {
+  /**
+   * ManagedCluster name, one of placement.selected_clusters.
+   *
+   * @generated from field: string cluster = 1;
+   */
+  cluster: string;
+
+  /**
+   * READY when every report from the cluster says ready; PENDING when one
+   * says not ready (or not found) or one is missing. Git mode never sets
+   * FAILED; PARTIALLY_AVAILABLE is only a whole model's phase.
+   *
+   * @generated from field: ai_grid.v1.ModelPhase phase = 2;
+   */
+  phase: ModelPhase;
+
+  /**
+   * Ready, NotReady (a report says not ready or not found) or NoReport (the
+   * cluster hasn't reported the object yet).
+   *
+   * @generated from field: string reason = 3;
+   */
+  reason: string;
+
+  /**
+   * What the cluster reported, for example "LLMInferenceService not ready"
+   * or "LLMInferenceService ready; no MaaSModelRef report".
+   *
+   * @generated from field: string message = 4;
+   */
+  message: string;
+};
+
+/**
+ * Describes the message ai_grid.v1.ModelClusterStatus.
+ * Use `create(ModelClusterStatusSchema)` to create a new message.
+ */
+export const ModelClusterStatusSchema: GenMessage<ModelClusterStatus> = /*@__PURE__*/
+  messageDesc(file_ai_grid_v1_model_type, 14);
 
 /**
  * Placement observed state.
@@ -624,7 +717,7 @@ export type ModelPlacementStatus = Message<"ai_grid.v1.ModelPlacementStatus"> & 
  * Use `create(ModelPlacementStatusSchema)` to create a new message.
  */
 export const ModelPlacementStatusSchema: GenMessage<ModelPlacementStatus> = /*@__PURE__*/
-  messageDesc(file_ai_grid_v1_model_type, 14);
+  messageDesc(file_ai_grid_v1_model_type, 15);
 
 /**
  * ManifestWorkReplicaSet observed state.
@@ -654,7 +747,8 @@ export type ModelRolloutStatus = Message<"ai_grid.v1.ModelRolloutStatus"> & {
   reason: string;
 
   /**
-   * Per-cluster work summaries when available.
+   * Per-cluster work summaries when available. Never set in git mode; see
+   * ModelStatus.clusters.
    *
    * @generated from field: repeated ai_grid.v1.ModelWorkStatus works = 4;
    */
@@ -673,7 +767,7 @@ export type ModelRolloutStatus = Message<"ai_grid.v1.ModelRolloutStatus"> & {
  * Use `create(ModelRolloutStatusSchema)` to create a new message.
  */
 export const ModelRolloutStatusSchema: GenMessage<ModelRolloutStatus> = /*@__PURE__*/
-  messageDesc(file_ai_grid_v1_model_type, 15);
+  messageDesc(file_ai_grid_v1_model_type, 16);
 
 /**
  * One generated ManifestWork summary.
@@ -712,7 +806,7 @@ export type ModelWorkStatus = Message<"ai_grid.v1.ModelWorkStatus"> & {
  * Use `create(ModelWorkStatusSchema)` to create a new message.
  */
 export const ModelWorkStatusSchema: GenMessage<ModelWorkStatus> = /*@__PURE__*/
-  messageDesc(file_ai_grid_v1_model_type, 16);
+  messageDesc(file_ai_grid_v1_model_type, 17);
 
 /**
  * Rollout strategy type.
@@ -750,6 +844,29 @@ export const ModelRolloutStrategySchema: GenEnum<ModelRolloutStrategy> = /*@__PU
 /**
  * Derived model phase.
  *
+ * In git mode, while no cluster has reported the model, the phase is
+ * UNSPECIFIED with reason SavedToGit. Once one has, the phase is, in this
+ * order of precedence:
+ *
+ *   - READY (reason Ready): every ingress cluster reports the model's
+ *     MaaSModelRef ready, and every placed cluster is READY in `clusters`.
+ *   - PARTIALLY_AVAILABLE (reason PartiallyAvailable): every ingress cluster
+ *     reports the MaaSModelRef ready, at least one placed cluster is READY
+ *     and at least one is not.
+ *   - PENDING (reason NotReady): otherwise, including while an ingress
+ *     cluster reports the MaaSModelRef not ready or hasn't reported it.
+ *
+ * The ingress clusters are those the catalog status Policy lists and those
+ * labelled ai-grid/enabled "true" and ai-grid/role ingress or combined; each
+ * must report. READY and PARTIALLY_AVAILABLE need at least one: with none,
+ * nothing shows the model published, so it is PENDING, and the message ends
+ * "no ingress cluster has reported the MaaSModelRef".
+ *
+ * Git mode never reports FAILED: the status Policies can't tell a model
+ * that failed from one that is still starting. The order is the one the
+ * console's Models page uses (READY, PARTIALLY_AVAILABLE, FAILED, then the
+ * PENDING cases; proposal P13).
+ *
  * @generated from enum ai_grid.v1.ModelPhase
  */
 export enum ModelPhase {
@@ -772,6 +889,15 @@ export enum ModelPhase {
    * @generated from enum value: MODEL_PHASE_FAILED = 3;
    */
   FAILED = 3,
+
+  /**
+   * Serving on some of the clusters its placement names but not all (see
+   * above). Only a whole model has it; a cluster in ModelStatus.clusters is
+   * READY or PENDING.
+   *
+   * @generated from enum value: MODEL_PHASE_PARTIALLY_AVAILABLE = 4;
+   */
+  PARTIALLY_AVAILABLE = 4,
 }
 
 /**
