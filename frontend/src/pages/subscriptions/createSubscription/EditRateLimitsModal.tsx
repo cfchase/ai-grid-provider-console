@@ -5,8 +5,7 @@
 import { useState } from 'react';
 import { Button, Form, Modal, ModalBody, ModalFooter, ModalHeader, Stack, StackItem } from '@patternfly/react-core';
 import { PlusCircleIcon } from '@patternfly/react-icons';
-import type { TokenRateLimit } from '../../../api/types';
-import type { RateLimit } from '../../../utilities/rateLimits';
+import type { RateLimit, TokenLimit } from '../../../utilities/rateLimits';
 import {
   DEFAULT_RATE_LIMIT,
   getCountDigitError,
@@ -23,8 +22,8 @@ import { RateLimitRow } from './RateLimitRow';
 
 type Props = {
   modelName: string;
-  rateLimits: TokenRateLimit[];
-  onSave: (rateLimits: TokenRateLimit[]) => void;
+  rateLimits: TokenLimit[];
+  onSave: (rateLimits: TokenLimit[]) => void;
   onClose: () => void;
 };
 

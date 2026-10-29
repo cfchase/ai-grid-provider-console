@@ -5,6 +5,8 @@ import { MemoryRouter, useNavigate } from 'react-router-dom';
 import type { InitialEntry, NavigateFunction } from 'react-router-dom';
 import { ServiceError } from '../api/ConsoleService';
 import { MockConsoleService } from '../api/MockConsoleService';
+import { fakeClients } from '../api/connect/testing';
+import { clustersBackend } from './connectClusters';
 // The routes load these pages lazily; loaded here, their import does not run inside a test's findBy.
 import '../pages/grid/GridPage';
 import '../pages/models/ModelDetailsPage';
@@ -103,10 +105,6 @@ describe('routes', () => {
     ['/organizations/org-1/edit', 'getOrganization', orgs],
     ['/models', 'listModels', 'Models are not available on this backend yet'],
     ['/models/deploy', 'listLocations', 'Locations are not available on this backend yet.', toLocationsStep],
-    ['/subscriptions', 'listSubscriptions', subs],
-    ['/subscriptions/view/engineering', 'getSubscriptionInfo', subs],
-    ['/subscriptions/create', 'listSubscriptions', subs],
-    ['/subscriptions/edit/engineering', 'listSubscriptions', subs],
     ['/ai-grid', 'listClusters', 'AI Grid is not available on this backend yet'],
     ['/monitoring', 'getGridOverview', 'Monitoring is not available on this backend yet'],
   ])('renders not-available pages: %s without %s', async (path, methods, text, open) => {
@@ -124,6 +122,28 @@ describe('routes', () => {
     await open?.(user);
     expect(await screen.findByText(text)).toBeInTheDocument();
     expect(screen.queryByText(/could not be loaded/)).not.toBeInTheDocument();
+    expect(screen.queryByText('the AI Grid backend does not support this operation yet')).not.toBeInTheDocument();
+  });
+
+  // The subscription pages call the backend over Connect: one without the Subscriptions and
+  // Models RPCs answers Unimplemented.
+  it.each([
+    '/subscriptions',
+    '/subscriptions/view/engineering',
+    '/subscriptions/create',
+    '/subscriptions/edit/engineering',
+  ])('renders the not-available page: %s on a backend without Subscriptions', async (path) => {
+    const service = new MockConsoleService();
+    render(
+      <MemoryRouter initialEntries={[path]}>
+        <TestApp
+          service={service}
+          transport={(interceptors) => fakeClients({ clusters: clustersBackend(service) }, { interceptors }).transport}
+        />
+      </MemoryRouter>,
+    );
+    await waitFor(() => expect(screen.getByTestId('masthead-user')).toHaveTextContent('dev-user'));
+    expect(await screen.findByText(subs)).toBeInTheDocument();
     expect(screen.queryByText('the AI Grid backend does not support this operation yet')).not.toBeInTheDocument();
   });
 

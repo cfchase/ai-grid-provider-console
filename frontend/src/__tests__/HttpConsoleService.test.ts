@@ -137,54 +137,6 @@ describe('HttpConsoleService', () => {
     );
   });
 
-  it('reads and writes subscriptions by name, with the version in If-Match', async () => {
-    const subscription = { name: 'team', resourceVersion: '1', owner: { groups: [] }, modelRefs: [] };
-    const fetchFn = vi
-      .fn()
-      .mockImplementation(async (path: string, init: RequestInit) =>
-        jsonResponse(200, { data: path === '/api/v1/subscriptions' && init.method === 'GET' ? [] : { subscription } }),
-      );
-    const service = new HttpConsoleService(fetchFn);
-    await service.listSubscriptions();
-    expect(fetchFn).toHaveBeenLastCalledWith('/api/v1/subscriptions', expect.objectContaining({ method: 'GET' }));
-    await service.getSubscriptionInfo('a b');
-    expect(fetchFn).toHaveBeenLastCalledWith('/api/v1/subscriptions/a%20b', expect.objectContaining({ method: 'GET' }));
-    await service.createSubscription({ name: 'team' } as never);
-    expect(fetchFn).toHaveBeenLastCalledWith(
-      '/api/v1/subscriptions',
-      expect.objectContaining({ method: 'POST', body: '{"name":"team"}' }),
-    );
-    await service.updateSubscription('a b', { priority: 1 } as never, '4');
-    expect(fetchFn).toHaveBeenLastCalledWith(
-      '/api/v1/subscriptions/a%20b',
-      expect.objectContaining({
-        method: 'PUT',
-        body: '{"priority":1}',
-        headers: expect.objectContaining({ 'If-Match': '"4"' }),
-      }),
-    );
-    fetchFn.mockImplementation(async () => new Response(null, { status: 204 }));
-    await expect(service.deleteSubscription('a b', '5')).resolves.toBeUndefined();
-    expect(fetchFn).toHaveBeenLastCalledWith(
-      '/api/v1/subscriptions/a%20b',
-      expect.objectContaining({ method: 'DELETE', headers: expect.objectContaining({ 'If-Match': '"5"' }) }),
-    );
-  });
-
-  it("maps a subscription's referenced models from the BFF's model JSON", async () => {
-    const model = { name: 'granite', namespace: 'ai-grid-models', modelUri: 'hf://x', modelName: 'x', phase: 'ready' };
-    const subscription = { name: 'team', resourceVersion: '1', owner: { groups: [] }, modelRefs: [] };
-    const fetchFn = vi.fn().mockResolvedValue(jsonResponse(200, { data: { subscription, modelRefs: [model] } }));
-    const info = await new HttpConsoleService(fetchFn).getSubscriptionInfo('team');
-    expect(info.modelRefs).toEqual([
-      expect.objectContaining({
-        name: 'granite',
-        namespace: 'ai-grid-models',
-        modelRef: { kind: 'LLMInferenceService', name: 'granite' },
-      }),
-    ]);
-  });
-
   it('maps the clusters the grid overview embeds', async () => {
     const fetchFn = vi.fn().mockResolvedValue(
       jsonResponse(200, {

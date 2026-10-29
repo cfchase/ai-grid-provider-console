@@ -5,22 +5,23 @@
 // The console adds the Organization column, sorted by the name it shows. Groups and Models show
 // counts that expand the row (SubscriptionTableRow), sorted by count.
 import type { ThProps } from '@patternfly/react-table';
-import type { MaaSSubscription } from '../../../api/types';
+import type { Subscription } from '../../../gen/ai_grid/v1/subscription_type_pb';
 import { normalizePhase } from '../../../utilities/phaseLabelUtils';
+import { displayNameOf, groupsOf, modelRefsOf } from '../subscriptionText';
 
 export type SubscriptionColumn = {
   label: string;
   width?: ThProps['width'];
   /** A number: right-aligned. */
   isNumber?: boolean;
-  sortable: (a: MaaSSubscription, b: MaaSSubscription) => number;
+  sortable: (a: Subscription, b: Subscription) => number;
 };
 
 /** The list's columns; organizationName shows a subscription's organization. */
-export const subscriptionsColumns = (organizationName: (s: MaaSSubscription) => string): SubscriptionColumn[] => [
+export const subscriptionsColumns = (organizationName: (s: Subscription) => string): SubscriptionColumn[] => [
   {
     label: 'Subscription',
-    sortable: (a, b) => (a.displayName ?? a.name).localeCompare(b.displayName ?? b.name),
+    sortable: (a, b) => displayNameOf(a).localeCompare(displayNameOf(b)),
   },
   {
     label: 'Organization',
@@ -30,22 +31,22 @@ export const subscriptionsColumns = (organizationName: (s: MaaSSubscription) => 
   {
     label: 'Status',
     width: 15,
-    sortable: (a, b) => normalizePhase(a.phase).localeCompare(normalizePhase(b.phase)),
+    sortable: (a, b) => normalizePhase(a.status?.phase).localeCompare(normalizePhase(b.status?.phase)),
   },
   {
     label: 'Groups',
     width: 10,
-    sortable: (a, b) => a.owner.groups.length - b.owner.groups.length,
+    sortable: (a, b) => groupsOf(a).length - groupsOf(b).length,
   },
   {
     label: 'Models',
     width: 10,
-    sortable: (a, b) => a.modelRefs.length - b.modelRefs.length,
+    sortable: (a, b) => modelRefsOf(a).length - modelRefsOf(b).length,
   },
   {
     label: 'Priority',
     width: 10,
     isNumber: true,
-    sortable: (a, b) => (a.priority ?? 0) - (b.priority ?? 0),
+    sortable: (a, b) => (a.spec?.priority ?? 0) - (b.spec?.priority ?? 0),
   },
 ];

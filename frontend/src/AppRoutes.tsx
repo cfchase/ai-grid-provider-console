@@ -1,10 +1,9 @@
 import { Fragment, lazy, Suspense } from 'react';
-import { Navigate, Outlet, Route, Routes, useLocation, useParams } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation, useParams } from 'react-router-dom';
 import type { ConsoleService } from './api/ConsoleService';
 import { NotFoundPage } from './components/NotFoundPage';
 import { PageErrorBoundary } from './components/PageErrorBoundary';
 import { PageLoading } from './components/PageLoading';
-import { MaaSGovernanceProvider } from './context/MaaSGovernanceContext';
 // Every page loads when it is first opened, so the first download is the shell alone: the landing
 // page (/ goes to /ai-grid, the map) brings Leaflet, which no other page needs.
 const ClustersPage = lazy(() => import('./pages/clusters/ClustersPage').then((m) => ({ default: m.ClustersPage })));
@@ -111,33 +110,25 @@ const Pages: React.FC<Props> = ({ service }) => (
         </ByParams>
       }
     />
-    {/* The subscription pages share the PoC's governance context, and only they use it (A25). */}
+    {/* The subscription pages read the backend over Connect (useSubscriptions), not the service. */}
+    <Route path="/subscriptions" element={<SubscriptionsPage />} />
+    <Route path="/subscriptions/create" element={<CreateSubscriptionPage />} />
     <Route
+      path="/subscriptions/view/:subscriptionName"
       element={
-        <MaaSGovernanceProvider service={service}>
-          <Outlet />
-        </MaaSGovernanceProvider>
+        <ByParams>
+          <ViewSubscriptionPage />
+        </ByParams>
       }
-    >
-      <Route path="/subscriptions" element={<SubscriptionsPage service={service} />} />
-      <Route path="/subscriptions/create" element={<CreateSubscriptionPage service={service} />} />
-      <Route
-        path="/subscriptions/view/:subscriptionName"
-        element={
-          <ByParams>
-            <ViewSubscriptionPage service={service} />
-          </ByParams>
-        }
-      />
-      <Route
-        path="/subscriptions/edit/:subscriptionName"
-        element={
-          <ByParams>
-            <EditSubscriptionPage service={service} />
-          </ByParams>
-        }
-      />
-    </Route>
+    />
+    <Route
+      path="/subscriptions/edit/:subscriptionName"
+      element={
+        <ByParams>
+          <EditSubscriptionPage />
+        </ByParams>
+      }
+    />
     <Route path="*" element={<NotFoundPage />} />
   </Routes>
 );

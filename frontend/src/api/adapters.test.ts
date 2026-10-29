@@ -7,19 +7,9 @@ import {
   toManagedModel,
   toModelCreate,
   toOrganization,
-  toSubscription,
-  toSubscriptionInfo,
   withRuntimeArgs,
 } from './adapters';
-import type {
-  ApiCluster,
-  ApiModel,
-  ApiTenant,
-  CreateModelRequest,
-  MaaSAuthPolicy,
-  MaaSSubscription,
-  SubscriptionInfoResponse,
-} from './types';
+import type { ApiCluster, ApiModel, ApiTenant, CreateModelRequest } from './types';
 
 // A cluster of GET /api/v1/grid/overview (mock/examples/get-grid-overview.json), trimmed.
 const apiCluster = (overrides: Partial<ApiCluster> = {}): ApiCluster => ({
@@ -142,87 +132,6 @@ describe('toGridCluster', () => {
 
   it('gives a cluster without labels an empty map', () => {
     expect(toGridCluster(apiCluster({ labels: undefined })).labels).toEqual({});
-  });
-});
-
-const base: MaaSSubscription = {
-  name: 'team-a',
-  resourceVersion: '1',
-  owner: { groups: [{ name: 'team-a' }] },
-  modelRefs: [{ name: 'granite-8b-instruct', tokenRateLimits: [{ limit: 1000, window: '1h' }] }],
-};
-
-describe('toSubscription', () => {
-  it("picks the Ready condition into the subscription's status fields", () => {
-    const json: MaaSSubscription = {
-      ...base,
-      phase: 'Degraded',
-      conditions: [
-        { type: 'SpecPriorityDuplicate', status: 'False', reason: 'NoDuplicatePeers' },
-        {
-          type: 'Ready',
-          status: 'False',
-          reason: 'PartialFailure',
-          message: '1 of 1 TokenRateLimitPolicies not accepted',
-          lastTransitionTime: '2026-10-16T09:00:01Z',
-        },
-      ],
-    };
-    expect(toSubscription(json)).toEqual({
-      ...json,
-      status: 'False',
-      reason: 'PartialFailure',
-      statusMessage: '1 of 1 TokenRateLimitPolicies not accepted',
-      conditionType: 'Ready',
-      lastTransitionTime: '2026-10-16T09:00:01Z',
-    });
-  });
-
-  it('leaves a subscription the controller has not reconciled without a phase', () => {
-    expect(toSubscription({ ...base, conditions: [] }).phase).toBeUndefined();
-    expect(toSubscription(base).phase).toBeUndefined();
-  });
-});
-
-describe('toSubscriptionInfo', () => {
-  it("picks each policy's Ready condition into its status fields, as the subscription's", () => {
-    // The BFF sends a policy's conditions only (the backend's internal/servers/subscription_mapper.go).
-    const policy: MaaSAuthPolicy = {
-      name: 'team-a-policy',
-      phase: 'Active',
-      modelRefs: [{ name: 'granite-8b-instruct' }],
-      subjects: { groups: [{ name: 'team-a' }] },
-      conditions: [
-        { type: 'ConflictingAuthPolicy', status: 'False', reason: 'NoConflict' },
-        {
-          type: 'Ready',
-          status: 'True',
-          reason: 'Reconciled',
-          message: 'Ready on site-a',
-          lastTransitionTime: '2026-10-16T09:00:01Z',
-        },
-      ],
-    };
-    const info = toSubscriptionInfo({ subscription: base, modelRefs: [], authPolicies: [policy] });
-    expect(info.authPolicies).toEqual([
-      {
-        ...policy,
-        status: 'True',
-        reason: 'Reconciled',
-        statusMessage: 'Ready on site-a',
-        conditionType: 'Ready',
-        lastTransitionTime: '2026-10-16T09:00:01Z',
-      },
-    ]);
-  });
-
-  it('leaves a policy without a Ready condition, and a missing list, as they are', () => {
-    const policy: MaaSAuthPolicy = { name: 'p', modelRefs: [], subjects: {} };
-    expect(toSubscriptionInfo({ subscription: base, modelRefs: [], authPolicies: [policy] }).authPolicies).toEqual([
-      policy,
-    ]);
-    const missing = { subscription: base, modelRefs: [] } as unknown as SubscriptionInfoResponse;
-    expect(toSubscriptionInfo(missing).authPolicies).toBeUndefined();
   });
 });
 

@@ -15,16 +15,17 @@ import {
   StackItem,
 } from '@patternfly/react-core';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
-import type { MaaSModelRefSummary } from '../api/types';
-import { isSameModel, modelKey } from '../utilities/authpolicies';
-import { normalizePhase } from '../utilities/phaseLabelUtils';
+import type { Model } from '../gen/ai_grid/v1/model_type_pb';
+import { entryModelId, type SubscriptionModelEntry } from '../pages/subscriptions/hooks/useSubscriptionModels';
+import { displayNameOf, modelPhaseOf } from '../pages/subscriptions/subscriptionText';
 import { StatusLabel } from './StatusLabel';
 
 type Props = {
-  availableModelRefs: MaaSModelRefSummary[];
-  currentModels: { modelRefSummary: MaaSModelRefSummary }[];
-  onAdd: (refs: MaaSModelRefSummary[]) => void;
-  onRemove: (refs: MaaSModelRefSummary[]) => void;
+  /** The models from Models/List. */
+  availableModels: Model[];
+  currentModels: SubscriptionModelEntry[];
+  onAdd: (models: Model[]) => void;
+  onRemove: (models: Model[]) => void;
   onClose: () => void;
 };
 
@@ -39,39 +40,40 @@ const toggled = (set: Set<string>, key: string) => {
  * Picks the models of a subscription: a checkbox per model (checked for the ones it has), with
  * each model's status, so a failed or pending model isn't added unnoticed.
  */
-export const AddModelsModal: React.FC<Props> = ({ availableModelRefs, currentModels, onAdd, onRemove, onClose }) => {
+export const AddModelsModal: React.FC<Props> = ({ availableModels, currentModels, onAdd, onRemove, onClose }) => {
   const [filter, setFilter] = useState('');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [pendingAdds, setPendingAdds] = useState<Set<string>>(new Set());
   const [pendingRemoves, setPendingRemoves] = useState<Set<string>>(new Set());
 
-  // Pending changes are keyed by the available models' namespace and name.
-  const isCurrent = (ref: MaaSModelRefSummary) => currentModels.some((m) => isSameModel(m.modelRefSummary, ref));
+  // Pending changes are keyed by the models' ids; a subscription's ref names its model by the
+  // backend's join (SubscriptionModelRef.model_id).
+  const isCurrent = (model: Model) => currentModels.some((m) => entryModelId(m) === model.id);
 
-  const isInCurrentSelection = (ref: MaaSModelRefSummary) =>
-    (isCurrent(ref) && !pendingRemoves.has(modelKey(ref))) || pendingAdds.has(modelKey(ref));
+  const isInCurrentSelection = (model: Model) =>
+    (isCurrent(model) && !pendingRemoves.has(model.id)) || pendingAdds.has(model.id);
 
   const filteredModels = useMemo(() => {
     const lowerFilter = filter.toLowerCase();
-    return availableModelRefs
-      .filter((ref) => !lowerFilter || (ref.displayName ?? ref.name).toLowerCase().includes(lowerFilter))
+    return availableModels
+      .filter((model) => !lowerFilter || displayNameOf(model).toLowerCase().includes(lowerFilter))
       .sort((a, b) => {
-        const cmp = (a.displayName ?? a.name).localeCompare(b.displayName ?? b.name);
+        const cmp = displayNameOf(a).localeCompare(displayNameOf(b));
         return sortDirection === 'asc' ? cmp : -cmp;
       });
-  }, [availableModelRefs, filter, sortDirection]);
+  }, [availableModels, filter, sortDirection]);
 
-  const handleToggleModel = (ref: MaaSModelRefSummary) => {
-    if (isCurrent(ref)) {
-      setPendingRemoves((prev) => toggled(prev, modelKey(ref)));
+  const handleToggleModel = (model: Model) => {
+    if (isCurrent(model)) {
+      setPendingRemoves((prev) => toggled(prev, model.id));
     } else {
-      setPendingAdds((prev) => toggled(prev, modelKey(ref)));
+      setPendingAdds((prev) => toggled(prev, model.id));
     }
   };
 
   const handleConfirm = () => {
-    const refsToAdd = availableModelRefs.filter((ref) => pendingAdds.has(modelKey(ref)));
-    const refsToRemove = availableModelRefs.filter((ref) => pendingRemoves.has(modelKey(ref)));
+    const refsToAdd = availableModels.filter((model) => pendingAdds.has(model.id));
+    const refsToRemove = availableModels.filter((model) => pendingRemoves.has(model.id));
     if (refsToRemove.length > 0) {
       onRemove(refsToRemove);
     }
@@ -116,23 +118,23 @@ export const AddModelsModal: React.FC<Props> = ({ availableModelRefs, currentMod
                 </Tr>
               </Thead>
               <Tbody>
-                {filteredModels.map((ref, rowIndex) => {
-                  const name = ref.displayName ?? ref.name;
+                {filteredModels.map((model, rowIndex) => {
+                  const name = displayNameOf(model);
                   return (
-                    <Tr key={modelKey(ref)}>
+                    <Tr key={model.id}>
                       {/* PatternFly's select cell names every box "Select row N"; this one names the model. */}
                       <Td className="pf-v6-c-table__check">
                         <Checkbox
                           id={`add-model-${rowIndex}`}
                           aria-label={`Select ${name}`}
-                          data-testid={`toggle-model-${ref.name}`}
-                          isChecked={isInCurrentSelection(ref)}
-                          onChange={() => handleToggleModel(ref)}
+                          data-testid={`toggle-model-${model.id}`}
+                          isChecked={isInCurrentSelection(model)}
+                          onChange={() => handleToggleModel(model)}
                         />
                       </Td>
                       <Td dataLabel="Model name">{name}</Td>
                       <Td dataLabel="Status">
-                        <StatusLabel isCompact status={normalizePhase(ref.phase)} reason={ref.statusMessage} />
+                        <StatusLabel isCompact status={modelPhaseOf(model)} reason={model.status?.message} />
                       </Td>
                     </Tr>
                   );

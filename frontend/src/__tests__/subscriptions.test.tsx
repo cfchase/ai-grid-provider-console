@@ -1,20 +1,25 @@
 // Ported from krisv/ai-grid-cloud-provider-poc src/app/__tests__/subscriptions.test.tsx at 62319b8.
-// The PoC drives its mock service; here the same cases run on MockConsoleService, which follows
-// the fake backend's rules (bff/internal/fakebackend/subscriptions.go).
+// The pages read and write the backend's Subscriptions API over Connect; here it is
+// connectSubscriptions.ts's in-memory fake, which answers as the backend's git mode does, with the
+// models and organizations of a MockConsoleService.
 // Rulings and scope:
 // - "preserves user input on update conflict" is renamed "keeps input on conflict" (B8, D7).
 // - The create case also picks an organization, which the console requires.
-// - The PoC's failNext becomes a one-shot replacement of the service method.
+// - The PoC's failNext becomes a one-shot `before` hook on the fake.
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, useNavigate } from 'react-router-dom';
 import type { NavigateFunction } from 'react-router-dom';
+import { clone } from '@bufbuild/protobuf';
+import { timestampFromDate } from '@bufbuild/protobuf/wkt';
+import { Code, ConnectError } from '@connectrpc/connect';
 import { ServiceError } from '../api/ConsoleService';
-import { HttpConsoleService } from '../api/HttpConsoleService';
-import { MockConsoleService, seedSubscriptions } from '../api/MockConsoleService';
-import type { ConditionStatus, MaaSSubscription } from '../api/types';
-import { isSameModel } from '../utilities/authpolicies';
+import { MockConsoleService } from '../api/MockConsoleService';
+import { ConditionStatus } from '../gen/ai_grid/v1/condition_type_pb';
+import { SubscriptionSchema, type Subscription } from '../gen/ai_grid/v1/subscription_type_pb';
+import { ANNOTATION_DISPLAY_NAME } from '../pages/subscriptions/subscriptionText';
 import { serviceOnBffExamples } from './bffExamples';
+import { ACME_ID, seedSubscriptions, SUBSCRIPTION_NAMESPACE, subscriptionsOf } from './connectSubscriptions';
 import { deferred, renderAt } from './render';
 // The routes load these pages lazily; loaded here, their import does not run inside a test's findBy.
 import '../pages/subscriptions/CreateSubscriptionPage';
@@ -32,6 +37,33 @@ const unknownUser = () => {
 };
 
 type User = ReturnType<typeof userEvent.setup>;
+
+/** The stored subscription, as the fake backend has it. */
+const stored = (service: MockConsoleService, id: string): Subscription =>
+  subscriptionsOf(service).subscriptions.find((s) => s.id === id)!;
+
+/** Replaces the fake's subscriptions (and drops its policies). */
+const onlySubscriptions = (service: MockConsoleService, ...subscriptions: Subscription[]) => {
+  const fake = subscriptionsOf(service);
+  fake.subscriptions = subscriptions;
+  fake.policies = [];
+};
+
+/** A copy of the engineering seed. */
+const engineering = () => clone(SubscriptionSchema, seedSubscriptions()[0]);
+
+/** Fails the method's next call with `error`. */
+const failNext = (
+  service: MockConsoleService,
+  method: 'list' | 'get' | 'create' | 'update' | 'delete',
+  error: Error,
+) => {
+  const fake = subscriptionsOf(service);
+  fake.before[method] = () => {
+    delete fake.before[method];
+    throw error;
+  };
+};
 
 /** Picks an organization in the create form's Organization select. */
 const pickOrganization = async (user: User, name: string) => {
@@ -86,6 +118,7 @@ describe('administrator subscription flows', () => {
     expect(policies).toHaveTextContent('Active');
     expect(policies).not.toHaveTextContent('Ready');
     expect(within(details).getByText('Policies for its models')).toBeVisible();
+    // The ref's limits, and its model's registration (model_registrations).
     expect(screen.getByTestId('subscription-models-table')).toHaveTextContent('100,000 / 1 hour');
     expect(screen.getByTestId('subscription-models-table')).toHaveTextContent('Ready');
   });
@@ -102,10 +135,11 @@ describe('administrator subscription flows', () => {
     expect(modelsToggle).toHaveAttribute('aria-expanded', 'true');
     const models = screen.getByTestId('subscription-models-expanded-panel');
     const model = within(models).getByTestId('expanded-subscription-model-row');
+    // The display name the backend joined to the ref (SubscriptionModelRef.display_name).
     expect(model).toHaveTextContent('Granite 3.3 8B Instruct');
     expect(model).toHaveTextContent('granite-3-8b');
-    // Where the model's placement put it, named by its site as on the Models page, and every limit
-    // on one line.
+    // Where the model's placement put it (its locations), named by its site as on the Models page,
+    // and every limit on one line.
     expect(within(model).getByTestId('expanded-subscription-model-locations')).toHaveTextContent(
       'San Francisco (site1)',
     );
@@ -130,13 +164,13 @@ describe('administrator subscription flows', () => {
     expect(screen.queryByTestId('subscription-groups-expanded-panel')).not.toBeInTheDocument();
   });
 
-  it('shows a model the hub no longer has without locations, and an unlimited model as Unlimited', async () => {
+  it('shows a ref the backend joined to no model without locations, and an unlimited model as Unlimited', async () => {
     const user = userEvent.setup();
     const service = new MockConsoleService();
-    const engineering = service.subscriptions.find((sub) => sub.name === 'engineering')!;
-    engineering.modelRefs = [
-      { ...engineering.modelRefs[0], unlimited: true, tokenRateLimits: [] },
-      { name: 'retired-llm', namespace: 'ai-grid-models', tokenRateLimits: [{ limit: 50, window: '1m' }] },
+    const seed = stored(service, 'engineering');
+    seed.spec!.modelRefs = [
+      { ...seed.spec!.modelRefs[0], unlimited: true, tokenRateLimits: [] },
+      clone(SubscriptionSchema, seedSubscriptions()[2]).spec!.modelRefs[0],
     ];
     renderAt('/subscriptions', service);
     const table = await screen.findByTestId('subscriptions-table');
@@ -160,7 +194,7 @@ describe('administrator subscription flows', () => {
     const input = screen.getByTestId('subscriptions-model-filter-input').querySelector('input')!;
     expect(input).toHaveAttribute('placeholder', 'Filter by model name, ID, or description');
 
-    // By the hub model's description: only subscriptions with Llama remain.
+    // By the model's description: only subscriptions with Llama remain.
     await user.click(input);
     await user.paste('general purpose');
     expect(within(table).getByRole('link', { name: 'Data science' })).toBeVisible();
@@ -217,8 +251,7 @@ describe('administrator subscription flows', () => {
   it("names each row's actions menu after its subscription, as the other lists do", async () => {
     const user = userEvent.setup();
     const service = new MockConsoleService();
-    const research = service.subscriptions.find((s) => s.displayName === 'Research')!;
-    research.deletionTimestamp = '2026-10-27T10:00:00Z';
+    stored(service, 'research').metadata!.deletionTimestamp = timestampFromDate(new Date('2026-10-27T10:00:00Z'));
     renderAt('/subscriptions', service);
     const table = await screen.findByTestId('subscriptions-table');
     const row = within(table).getByRole('link', { name: 'Engineering' }).closest('tr')!;
@@ -248,7 +281,7 @@ describe('administrator subscription flows', () => {
     expect(menu).toHaveFocus();
   });
 
-  it('says when the hub models are still loading, or could not be loaded', async () => {
+  it('says when the models are still loading, or could not be loaded', async () => {
     const user = userEvent.setup();
     const service = new MockConsoleService();
     let fail: (e: Error) => void = () => {};
@@ -264,10 +297,10 @@ describe('administrator subscription flows', () => {
     await user.click(within(within(row).getByTestId('subscription-models')).getByRole('button'));
     expect(screen.getByTestId('expanded-subscription-model-locations')).toHaveTextContent('Loading locations');
 
-    act(() => fail(new Error('backend down')));
+    act(() => fail(new ServiceError(503, 'backend down')));
     expect(await screen.findByTestId('subscriptions-models-unavailable')).toHaveTextContent('Unable to load models');
     expect(screen.getByTestId('expanded-subscription-model-locations')).toHaveTextContent('Unavailable');
-    // The reference's own name still filters.
+    // The ref's own name still filters.
     await user.click(screen.getByTestId('subscriptions-filter-attribute'));
     await user.click(await screen.findByRole('option', { name: 'Model' }));
     await user.click(screen.getByTestId('subscriptions-model-filter-input').querySelector('input')!);
@@ -305,11 +338,21 @@ describe('administrator subscription flows', () => {
     await screen.findByTestId('subscriptions-table');
     expect(await screen.findByRole('link', { name: 'Test team' })).toBeVisible();
     expect(await screen.findByText('Subscription created')).toBeVisible();
-    const info = await service.getSubscriptionInfo('test-team');
-    expect(info.subscription.modelRefs[0].tokenRateLimits).toEqual([{ limit: 1000, window: '1h' }]);
-    expect(info.authPolicies.some((p) => p.name === 'test-team-policy')).toBe(true);
-    // Before the controller's first reconcile a subscription has no phase.
-    expect(info.subscription.phase).toBeUndefined();
+    // Subscriptions/Create: the id, the display name annotation, the organization, bare groups,
+    // and the model by its id with no namespace (SubscriptionModelRef.model_id).
+    const [{ object }] = subscriptionsOf(service).sent('create');
+    expect(object).toMatchObject({
+      id: 'test-team',
+      metadata: { name: 'test-team', annotations: { [ANNOTATION_DISPLAY_NAME]: 'Test team' } },
+      spec: {
+        owner: { groups: ['engineering'] },
+        organization: { id: ACME_ID },
+        modelRefs: [{ name: 'granite-3-8b', namespace: '', tokenRateLimits: [{ limit: 1000n, window: '1h' }] }],
+      },
+    });
+    expect(subscriptionsOf(service).policies.some((p) => p.id === 'test-team-policy')).toBe(true);
+    // Before a cluster reports, a subscription has no phase.
+    expect(stored(service, 'test-team').status).toBeUndefined();
   });
 
   it('edits without losing billing or metering configuration', async () => {
@@ -322,10 +365,33 @@ describe('administrator subscription flows', () => {
     await user.paste('Engineering updated');
     await user.click(screen.getByTestId('update-subscription-button'));
     expect(await screen.findByRole('link', { name: 'Engineering updated' })).toBeVisible();
-    const info = await service.getSubscriptionInfo('engineering');
-    expect(info.subscription.modelRefs[0].billingRate?.perToken).toBe('0.000002');
-    expect(info.subscription.tokenMetadata?.costCenter).toBe('engineering');
-    expect(info.subscription.tokenMetadata?.organizationId).toBe('3f1c9a72-5b6e-4d2a-8c01-2d3e4f5a6b7c');
+    const saved = stored(service, 'engineering');
+    expect(saved.spec?.modelRefs[0].billingRate?.perToken).toBe('0.000002');
+    expect(saved.spec?.tokenMetadata?.costCenter).toBe('engineering');
+    expect(saved.spec?.organization?.id).toBe(ACME_ID);
+  });
+
+  it('writes the whole spec and annotations it loaded, at the version it read', async () => {
+    const service = new MockConsoleService();
+    stored(service, 'engineering').metadata!.annotations.team = 'platform';
+    const user = userEvent.setup();
+    renderAt('/subscriptions/edit/engineering', service);
+    const description = await screen.findByTestId('subscription-name-desc-description');
+    await user.clear(description);
+    await user.paste('Changed');
+    await user.click(screen.getByTestId('update-subscription-button'));
+    await screen.findByTestId('subscriptions-table');
+    // An Update replaces a map whole (FieldMask), so the map goes back with the change in it.
+    const [request] = subscriptionsOf(service).sent('update');
+    expect(request.updateMask?.paths).toEqual(['spec', 'metadata.annotations']);
+    expect(request.lock).toBe(true);
+    expect(request.object?.metadata?.version).toBe(1);
+    expect(request.object?.metadata?.annotations).toEqual({
+      [ANNOTATION_DISPLAY_NAME]: 'Engineering',
+      'openshift.io/description': 'Changed',
+      team: 'platform',
+    });
+    expect(stored(service, 'engineering').metadata?.version).toBe(2);
   });
 
   it('requires typed confirmation and retains the dialog on delete failure', async () => {
@@ -339,34 +405,30 @@ describe('administrator subscription flows', () => {
     expect(within(modal).getByRole('button', { name: 'Delete' })).toBeDisabled();
     await user.click(screen.getByTestId('delete-modal-input'));
     await user.paste('Engineering');
-    const remove = service.deleteSubscription;
-    service.deleteSubscription = async () => {
-      service.deleteSubscription = remove;
-      throw new ServiceError(403, 'Permission denied.');
-    };
+    failNext(service, 'delete', new ConnectError('Permission denied.', Code.PermissionDenied));
     await user.click(within(modal).getByRole('button', { name: 'Delete' }));
     expect(await screen.findByTestId('delete-model-error-message-alert')).toHaveTextContent('Permission denied.');
-    expect(await service.getSubscriptionInfo('engineering')).toBeDefined();
+    expect(stored(service, 'engineering')).toBeDefined();
     await user.click(within(modal).getByRole('button', { name: 'Delete' }));
     await screen.findByTestId('subscriptions-table');
     await waitFor(() => expect(screen.queryByRole('link', { name: 'Engineering' })).not.toBeInTheDocument());
     expect(await screen.findByText('Subscription deleted')).toBeVisible();
+    // The delete sends the version read (zero would skip the backend's check).
+    expect(subscriptionsOf(service).sent('delete').at(-1)).toMatchObject({ id: 'engineering', resourceVersion: 1 });
   });
 
   it('edits an unlimited model without dropping controller-specific fields', async () => {
-    const seed = structuredClone(seedSubscriptions()[0]);
-    seed.owner.users = ['alice'];
-    seed.inferencePriority = -5;
-    seed.guardrails = [{ ref: { name: 'safety' } }];
-    seed.modelRefs[0] = {
-      ...seed.modelRefs[0],
-      unlimited: true,
-      tokenRateLimits: [],
-      guardrails: [{ ref: { name: 'model-safety' } }],
-    };
+    const seed = engineering();
+    seed.spec!.owner!.users = ['alice'];
+    seed.spec!.inferencePriority = -5;
+    seed.spec!.guardrails = [{ $typeName: 'ai_grid.v1.GuardrailAttachment', refName: 'safety', checks: [] }];
+    seed.spec!.modelRefs[0].unlimited = true;
+    seed.spec!.modelRefs[0].tokenRateLimits = [];
+    seed.spec!.modelRefs[0].guardrails = [
+      { $typeName: 'ai_grid.v1.GuardrailAttachment', refName: 'model-safety', checks: [] },
+    ];
     const service = new MockConsoleService();
-    service.subscriptions = [seed];
-    service.authPolicies = [];
+    onlySubscriptions(service, seed);
     const user = userEvent.setup();
     renderAt('/subscriptions/edit/engineering', service);
     const description = await screen.findByTestId('subscription-name-desc-description');
@@ -375,15 +437,12 @@ describe('administrator subscription flows', () => {
     await user.paste('Changed description');
     await user.click(screen.getByTestId('update-subscription-button'));
     await screen.findByTestId('subscriptions-table');
-    const saved = (await service.getSubscriptionInfo(seed.name)).subscription;
-    expect(saved.owner.users).toEqual(['alice']);
+    const saved = stored(service, 'engineering').spec!;
+    expect(saved.owner?.users).toEqual(['alice']);
     expect(saved.inferencePriority).toBe(-5);
-    expect(saved.guardrails).toEqual(seed.guardrails);
-    expect(saved.modelRefs[0]).toMatchObject({
-      unlimited: true,
-      tokenRateLimits: [],
-      guardrails: seed.modelRefs[0].guardrails,
-    });
+    expect(saved.guardrails.map((g) => g.refName)).toEqual(['safety']);
+    expect(saved.modelRefs[0]).toMatchObject({ unlimited: true, tokenRateLimits: [] });
+    expect(saved.modelRefs[0].guardrails.map((g) => g.refName)).toEqual(['model-safety']);
   });
 
   it('keeps the list under a warning when a reload fails', async () => {
@@ -391,25 +450,24 @@ describe('administrator subscription flows', () => {
     const user = userEvent.setup();
     renderAt('/subscriptions', service);
     expect(await screen.findByRole('link', { name: 'Engineering' })).toBeVisible();
-    vi.spyOn(service, 'listSubscriptions').mockRejectedValue(new ServiceError(503, 'Service unavailable.'));
+    subscriptionsOf(service).before.list = () => {
+      throw new ConnectError('Service unavailable.', Code.Unavailable);
+    };
     await user.click(screen.getByRole('button', { name: 'Refresh' }));
     expect(await screen.findByTestId('stale-data-alert')).toHaveTextContent(
-      'Showing the last loaded subscriptionsService unavailable.',
+      'Showing the last loaded subscriptionsthe AI Grid backend is unavailable; try again',
     );
     expect(screen.getByRole('link', { name: 'Engineering' })).toBeVisible();
   });
 
   it('renders load failures and allows retry', async () => {
     const service = new MockConsoleService();
-    const list = service.listSubscriptions;
-    service.listSubscriptions = async () => {
-      service.listSubscriptions = list;
-      throw new ServiceError(503, 'Service unavailable.');
-    };
+    failNext(service, 'list', new ConnectError('stored subscription is broken', Code.Internal));
     const user = userEvent.setup();
     renderAt('/subscriptions', service);
     expect(await screen.findByRole('heading', { name: 'Unable to load subscriptions' })).toBeVisible();
-    expect(screen.getByTestId('error-state')).toHaveTextContent('Service unavailable.');
+    // A server-side failure shows the console's words, not the backend's (describeError).
+    expect(screen.getByTestId('error-state')).toHaveTextContent('the AI Grid backend failed to process the request');
     await user.click(screen.getByRole('button', { name: 'Retry' }));
     expect(await screen.findByTestId('subscriptions-table')).toBeVisible();
   });
@@ -421,16 +479,16 @@ describe('administrator subscription flows', () => {
     const description = await screen.findByTestId('subscription-name-desc-description');
     await user.clear(description);
     await user.paste('Unsaved description');
-    const sub = (await service.getSubscriptionInfo('engineering')).subscription;
-    await service.updateSubscription(
-      sub.name,
-      { owner: sub.owner, modelRefs: sub.modelRefs, priority: 42 },
-      sub.resourceVersion,
-    );
+    // Someone else saves it meanwhile.
+    stored(service, 'engineering').metadata!.version = 2;
     await user.click(screen.getByTestId('update-subscription-button'));
-    expect(await screen.findByText('This subscription changed. Reload it before saving or deleting.')).toBeVisible();
+    expect(
+      await screen.findByText(
+        'update Subscription "engineering": the subscription changed since it was read; reload and retry',
+      ),
+    ).toBeVisible();
     expect(description).toHaveValue('Unsaved description');
-    expect((await service.getSubscriptionInfo('engineering')).subscription.description).toBe(
+    expect(stored(service, 'engineering').metadata?.annotations['openshift.io/description']).toBe(
       'Production models for the engineering team.',
     );
   });
@@ -438,7 +496,10 @@ describe('administrator subscription flows', () => {
 
 it('requires an organization and shows it in the table', async () => {
   const service = new MockConsoleService();
-  service.subscriptions[1].tokenMetadata = { organizationId: 'retired-org' };
+  stored(service, 'data-science').spec!.organization = {
+    $typeName: 'ai_grid.v1.SubscriptionOrganization',
+    id: 'retired-org',
+  };
   const user = userEvent.setup();
   renderAt('/subscriptions/create', service);
   await fillNewSubscription(user);
@@ -464,8 +525,7 @@ it('requires an organization and shows it in the table', async () => {
   expect(await rowOf('Engineering')).toHaveTextContent('acme-robotics');
   // An organization the backend doesn't list shows its raw id.
   expect(await rowOf('Data science')).toHaveTextContent('retired-org');
-  const saved = (await service.getSubscriptionInfo('test-team')).subscription;
-  expect(saved.tokenMetadata?.organizationId).toBe('8d2e7b31-0c4f-4a9d-b5e6-7f8a9b0c1d2e');
+  expect(stored(service, 'test-team').spec?.organization?.id).toBe('8d2e7b31-0c4f-4a9d-b5e6-7f8a9b0c1d2e');
 });
 
 it('hides write actions until it knows the user is a provider admin', async () => {
@@ -488,9 +548,7 @@ it('hides write actions until it knows the user is a provider admin', async () =
 
 it('shows the not-available state when the backend has no subscriptions yet', async () => {
   const service = new MockConsoleService();
-  service.listSubscriptions = async () => {
-    throw new ServiceError(501, 'the AI Grid backend does not support this operation yet');
-  };
+  failNext(service, 'list', new ConnectError('unimplemented', Code.Unimplemented));
   renderAt('/subscriptions', service);
   expect(await screen.findByText('Subscriptions are not available on this backend yet')).toBeVisible();
   expect(screen.queryByTestId('subscriptions-table')).not.toBeInTheDocument();
@@ -498,9 +556,7 @@ it('shows the not-available state when the backend has no subscriptions yet', as
 
 it('says creating is not available on a backend without subscriptions', async () => {
   const service = new MockConsoleService();
-  service.createSubscription = async () => {
-    throw new ServiceError(501, 'the AI Grid backend does not support this operation yet');
-  };
+  failNext(service, 'create', new ConnectError('unimplemented', Code.Unimplemented));
   const user = userEvent.setup();
   renderAt('/subscriptions/create', service);
   await fillNewSubscription(user);
@@ -535,13 +591,14 @@ describe('a failed background poll', () => {
       throw new ServiceError(503, 'Service unavailable.');
     });
     service.listModels = failed;
-    service.listSubscriptions = failed;
+    service.listOrganizations = failed;
     await act(async () => {
       vi.advanceTimersByTime(30000);
     });
     await waitFor(() => expect(failed).toHaveBeenCalled());
     await act(async () => {});
     expect(screen.queryByText('Unable to load subscriptions')).not.toBeInTheDocument();
+    expect(screen.queryByText('Unable to load subscription')).not.toBeInTheDocument();
     expect(screen.getByTestId(testId)).toHaveValue('Unsaved input');
   });
 });
@@ -549,79 +606,71 @@ describe('a failed background poll', () => {
 /** A copy of the engineering seed named `name`, with the phase and Ready condition the backend reports. */
 const withPhase = (
   name: string,
-  phase: string | undefined,
+  phase: string,
   ready?: { status: ConditionStatus; reason: string; message?: string },
-): MaaSSubscription => ({
-  ...structuredClone(seedSubscriptions()[0]),
-  name,
-  displayName: name,
-  phase,
-  conditions: ready ? [{ type: 'Ready', ...ready }] : [],
-});
+): Subscription => {
+  const sub = engineering();
+  sub.id = name;
+  sub.metadata!.name = name;
+  sub.metadata!.annotations[ANNOTATION_DISPLAY_NAME] = name;
+  sub.status = {
+    $typeName: 'ai_grid.v1.SubscriptionStatus',
+    phase,
+    conditions: ready ? [{ $typeName: 'ai_grid.v1.Condition', type: 'Ready', observedGeneration: 0n, ...ready }] : [],
+    modelRefStatuses: [],
+    tokenRateLimitStatuses: [],
+  };
+  return sub;
+};
 
-const TRLP_MESSAGE = '1 of 1 TokenRateLimitPolicies not accepted';
-
-describe('MaaS subscription phases', () => {
-  it('shows the real phases', async () => {
+describe('subscription phases', () => {
+  it('shows the phases as the backend reports them', async () => {
     const service = new MockConsoleService();
-    service.subscriptions = [
-      withPhase('unreconciled-sub', undefined),
-      withPhase('degraded-sub', 'Degraded', { status: 'False', reason: 'PartialFailure', message: TRLP_MESSAGE }),
-      withPhase('active-sub', 'Active', { status: 'True', reason: 'Reconciled', message: 'successfully reconciled' }),
-      withPhase('failed-sub', 'Failed', {
-        status: 'False',
-        reason: 'ReconcileFailed',
-        message: 'all 1 model references are invalid or unavailable',
-      }),
-      withPhase('invalid-sub', 'Invalid', { status: 'False', reason: 'InvalidSpec' }),
-    ];
+    onlySubscriptions(
+      service,
+      withPhase('unreported-sub', ''),
+      withPhase('pending-sub', 'Pending'),
+      withPhase('active-sub', 'Active'),
+      // A phase git mode doesn't report reads as it is.
+      withPhase('degraded-sub', 'Degraded', { status: ConditionStatus.FALSE, reason: 'PartialFailure' }),
+    );
     renderAt('/subscriptions', service);
     const table = await screen.findByTestId('subscriptions-table');
     const label = (name: string) =>
       within(within(table).getByRole('link', { name }).closest('tr')!).getByTestId('phase-label');
-    // No phase yet reads Unknown, as in odh-dashboard's MaaS screens.
-    expect(label('unreconciled-sub')).toHaveTextContent('Unknown');
-    expect(label('degraded-sub')).toHaveTextContent('Degraded');
+    // No phase yet (no cluster has reported) reads Unknown, as in odh-dashboard's MaaS screens.
+    expect(label('unreported-sub')).toHaveTextContent('Unknown');
+    expect(label('pending-sub')).toHaveTextContent('Pending');
     // Active, as its policy's phase reads beside it. Every status is an outline label that opens nothing.
     expect(label('active-sub')).toHaveTextContent('Active');
+    expect(label('degraded-sub')).toHaveTextContent('Degraded');
     for (const name of ['active-sub', 'degraded-sub']) {
       expect(label(name)).toHaveClass('pf-m-outline');
       expect(within(label(name)).queryByRole('button')).not.toBeInTheDocument();
     }
-    expect(label('failed-sub')).toHaveTextContent('Failed');
-    expect(label('invalid-sub')).toHaveTextContent('Invalid');
-    expect(screen.queryByText('Saved')).not.toBeInTheDocument();
   });
 
-  it('shows the Degraded message', async () => {
+  it("shows a subscription's Ready message under a Degraded label", async () => {
+    const message = '1 of 1 TokenRateLimitPolicies not accepted';
     const service = new MockConsoleService();
-    service.subscriptions = [
-      withPhase('degraded-sub', 'Degraded', { status: 'False', reason: 'PartialFailure', message: TRLP_MESSAGE }),
-    ];
+    onlySubscriptions(
+      service,
+      withPhase('degraded-sub', 'Degraded', { status: ConditionStatus.FALSE, reason: 'PartialFailure', message }),
+    );
     const user = userEvent.setup();
     renderAt('/subscriptions', service);
-    expect(await screen.findByTestId('phase-label-subtext')).toHaveTextContent(TRLP_MESSAGE);
+    expect(await screen.findByTestId('phase-label-subtext')).toHaveTextContent(message);
     // The condition's message is the label's tooltip too.
     await user.hover(within(screen.getByTestId('phase-label')).getByText('Degraded'));
-    expect(await screen.findByRole('tooltip')).toHaveTextContent(TRLP_MESSAGE);
+    expect(await screen.findByRole('tooltip')).toHaveTextContent(message);
   });
 });
 
-it('shows Saved to Git, not Pending, for a model the backend saved to Git', async () => {
+it('shows Saved to Git, not Pending, for a model no cluster has reported', async () => {
   const service = new MockConsoleService();
-  const info = await service.getSubscriptionInfo('engineering');
-  const ref = info.subscription.modelRefs[0];
-  // The BFF's JSON for a registration in git mode: no phase, reason SavedToGit.
-  const body = {
-    ...info,
-    modelRefs: [{ name: ref.name, namespace: ref.namespace, reason: 'SavedToGit', message: 'Saved to Git' }],
-  };
-  const http = new HttpConsoleService(
-    vi.fn(
-      async () => new Response(JSON.stringify({ data: body }), { headers: { 'Content-Type': 'application/json' } }),
-    ) as unknown as typeof fetch,
-  );
-  service.getSubscriptionInfo = (name) => http.getSubscriptionInfo(name);
+  // Without a report the backend's registration has no phase and a Ready condition of reason
+  // SavedToGit (gitModelRegistrations).
+  subscriptionsOf(service).registrations = [];
   renderAt('/subscriptions/view/engineering', service);
   const models = await screen.findByTestId('subscription-models-table');
   expect(models).toHaveTextContent('Saved to Git');
@@ -629,42 +678,18 @@ it('shows Saved to Git, not Pending, for a model the backend saved to Git', asyn
 });
 
 it("shows a policy's Ready message on its status label", async () => {
-  const service = new MockConsoleService();
-  const info = await service.getSubscriptionInfo('engineering');
-  // The BFF's JSON for a policy: its conditions only, no statusMessage (the backend's
-  // internal/servers/subscription_mapper.go).
-  const body = {
-    ...info,
-    authPolicies: [
-      {
-        name: 'engineering-policy',
-        displayName: 'Engineering policy',
-        phase: 'Active',
-        modelRefs: info.subscription.modelRefs.map(({ name, namespace }) => ({ name, namespace })),
-        subjects: { groups: [{ name: 'engineering' }] },
-        conditions: [{ type: 'Ready', status: 'True', reason: 'Reconciled', message: 'Ready on site-a' }],
-      },
-    ],
-  };
-  const http = new HttpConsoleService(
-    vi.fn(
-      async () => new Response(JSON.stringify({ data: body }), { headers: { 'Content-Type': 'application/json' } }),
-    ) as unknown as typeof fetch,
-  );
-  service.getSubscriptionInfo = (name) => http.getSubscriptionInfo(name);
   const user = userEvent.setup();
-  renderAt('/subscriptions/view/engineering', service);
+  renderAt('/subscriptions/view/engineering', new MockConsoleService());
   const policies = await screen.findByTestId('subscription-auth-policies');
   const active = within(policies).getByText('Active');
   await user.hover(active);
-  expect(await screen.findByRole('tooltip')).toHaveTextContent('Ready on site-a');
-  expect(active.closest('[aria-describedby]')).toHaveAccessibleDescription('Ready on site-a');
+  expect(await screen.findByRole('tooltip')).toHaveTextContent('Ready on site1');
+  expect(active.closest('[aria-describedby]')).toHaveAccessibleDescription('Ready on site1');
 });
 
-describe("model references on the BFF's example models", () => {
-  it('offers the example models and sends the picked model with its namespace', async () => {
+describe("model refs on the BFF's example models", () => {
+  it('offers the example models and sends the picked model by its id', async () => {
     const service = serviceOnBffExamples();
-    const create = vi.spyOn(service, 'createSubscription');
     const user = userEvent.setup();
     renderAt('/subscriptions/create', service);
     await pickOrganization(user, 'acme-robotics');
@@ -682,53 +707,49 @@ describe("model references on the BFF's example models", () => {
     await user.click(screen.getByTestId('add-token-limit-0'));
     await user.click(screen.getByTestId('save-rate-limits'));
     await user.click(screen.getByTestId('create-subscription-button'));
-    await waitFor(() => expect(create).toHaveBeenCalled());
-    expect(create.mock.calls[0][0].modelRefs).toEqual([
-      { name: 'granite-8b-instruct', namespace: 'ai-grid-models', tokenRateLimits: [{ limit: 1000, window: '1h' }] },
-    ]);
-  });
-
-  it('matches references by namespace and name', async () => {
-    const service = new MockConsoleService();
-    const [model] = service.models;
-    service.models = [
-      { ...model, namespace: 'ai-grid-models', displayName: 'Shared granite' },
-      { ...model, namespace: 'team-models', displayName: 'Team granite' },
-    ];
-    const seed = structuredClone(seedSubscriptions()[0]);
-    seed.modelRefs = [{ name: model.name, namespace: 'team-models', tokenRateLimits: [{ limit: 5, window: '1m' }] }];
-    service.subscriptions = [seed];
-    service.authPolicies = [];
-    const update = vi.spyOn(service, 'updateSubscription');
-    const user = userEvent.setup();
-    renderAt(`/subscriptions/edit/${seed.name}`, service);
-    const models = await screen.findByTestId('subscription-models-table');
-    expect(models).toHaveTextContent('Team granite');
-    expect(models).not.toHaveTextContent('Shared granite');
-    await user.click(screen.getByTestId('add-models-button'));
-    const rows = within(screen.getByTestId('add-models-table')).getAllByRole('row');
-    const row = (name: string) => rows.find((r) => r.textContent?.includes(name))!;
-    expect(within(row('Team granite')).getByRole('checkbox', { name: 'Select Team granite' })).toBeChecked();
-    expect(within(row('Shared granite')).getByRole('checkbox', { name: 'Select Shared granite' })).not.toBeChecked();
-    await user.keyboard('{Escape}');
-    // An unchanged edit can't be saved; change something besides the models.
-    await user.click(screen.getByTestId('subscription-name-desc-description'));
-    await user.paste(' (edited)');
-    await user.click(screen.getByTestId('update-subscription-button'));
-    await waitFor(() => expect(update).toHaveBeenCalled());
-    expect(update.mock.calls[0][1].modelRefs).toEqual([
-      { name: model.name, namespace: 'team-models', tokenRateLimits: [{ limit: 5, window: '1m' }] },
+    await waitFor(() => expect(subscriptionsOf(service).sent('create')).toHaveLength(1));
+    expect(subscriptionsOf(service).sent('create')[0].object?.spec?.modelRefs).toEqual([
+      expect.objectContaining({
+        name: 'granite-8b-instruct',
+        namespace: '',
+        tokenRateLimits: [expect.objectContaining({ limit: 1000n, window: '1h' })],
+      }),
     ]);
   });
 });
 
-it('sends a re-added unlimited model with its new limits only', async () => {
-  const seed = structuredClone(seedSubscriptions()[0]);
-  seed.modelRefs[0] = { ...seed.modelRefs[0], unlimited: true, tokenRateLimits: [] };
+it('joins a ref to its model by model_id, not by its name', async () => {
   const service = new MockConsoleService();
-  service.subscriptions = [seed];
-  service.authPolicies = [];
-  const update = vi.spyOn(service, 'updateSubscription');
+  const seed = engineering();
+  // A MaaSModelRef in another namespace that the Models API didn't write: the backend joins it to
+  // no model, however it is named.
+  seed.spec!.modelRefs[0].namespace = 'team-models';
+  onlySubscriptions(service, seed);
+  const user = userEvent.setup();
+  renderAt(`/subscriptions/edit/${seed.id}`, service);
+  const models = await screen.findByTestId('subscription-models-table');
+  expect(models).not.toHaveTextContent('Granite 3.3 8B Instruct');
+  expect(models).toHaveTextContent('Not found');
+  await user.click(screen.getByTestId('add-models-button'));
+  expect(screen.getByRole('checkbox', { name: 'Select Granite 3.3 8B Instruct' })).not.toBeChecked();
+  await user.keyboard('{Escape}');
+  // An unchanged edit can't be saved; change something besides the models.
+  await user.click(screen.getByTestId('subscription-name-desc-description'));
+  await user.paste(' (edited)');
+  await user.click(screen.getByTestId('update-subscription-button'));
+  await waitFor(() => expect(subscriptionsOf(service).sent('update')).toHaveLength(1));
+  // The ref goes back as loaded.
+  expect(subscriptionsOf(service).sent('update')[0].object?.spec?.modelRefs).toEqual([
+    expect.objectContaining({ name: 'granite-3-8b', namespace: 'team-models' }),
+  ]);
+});
+
+it('sends a re-added unlimited model with its new limits only', async () => {
+  const seed = engineering();
+  seed.spec!.modelRefs[0].unlimited = true;
+  seed.spec!.modelRefs[0].tokenRateLimits = [];
+  const service = new MockConsoleService();
+  onlySubscriptions(service, seed);
   const user = userEvent.setup();
   renderAt('/subscriptions/edit/engineering', service);
   const models = await screen.findByTestId('subscription-models-table');
@@ -739,9 +760,10 @@ it('sends a re-added unlimited model with its new limits only', async () => {
   await user.click(screen.getByTestId('add-token-limit-0'));
   await user.click(screen.getByTestId('save-rate-limits'));
   await user.click(screen.getByTestId('update-subscription-button'));
-  await waitFor(() => expect(update).toHaveBeenCalled());
-  expect(update.mock.calls[0][1].modelRefs[0]).toMatchObject({ tokenRateLimits: [{ limit: 1000, window: '1h' }] });
-  expect(update.mock.calls[0][1].modelRefs[0].unlimited).toBeFalsy();
+  await waitFor(() => expect(subscriptionsOf(service).sent('update')).toHaveLength(1));
+  const [ref] = subscriptionsOf(service).sent('update')[0].object?.spec?.modelRefs ?? [];
+  expect(ref).toMatchObject({ name: 'granite-3-8b', namespace: '', unlimited: false });
+  expect(ref?.tokenRateLimits).toEqual([expect.objectContaining({ limit: 1000n, window: '1h' })]);
   await screen.findByTestId('subscriptions-table');
 });
 
@@ -789,17 +811,11 @@ it.each(['view', 'edit'])('loads the other subscription when the name in /subscr
   await shows('Data science');
 });
 
-it('matches a model reference only in its own namespace', () => {
-  // The backend names every reference's namespace, so a missing one matches nothing.
-  expect(isSameModel({ name: 'm' }, { name: 'm', namespace: 'team-models' })).toBe(false);
-  expect(isSameModel({ name: 'm', namespace: 'team-models' }, { name: 'm', namespace: 'team-models' })).toBe(true);
-});
-
 it('hints that a new model needs a token limit, and labels the limit fields', async () => {
   const user = userEvent.setup();
   renderAt('/subscriptions/create', new MockConsoleService());
   expect(await screen.findByText(/^Give groups of an organization's users access to models/)).toBeVisible();
-  await user.click(screen.getByTestId('add-models-button'));
+  await user.click(await screen.findByTestId('add-models-button'));
   await user.click(screen.getByTestId('toggle-model-granite-3-8b'));
   await user.click(screen.getByTestId('confirm-add-models'));
   // A hint, not an error, before the user has done anything with the model.
@@ -817,8 +833,7 @@ it('hints that a new model needs a token limit, and labels the limit fields', as
 
 it('says straight away that a subscription saved without an organization needs one', async () => {
   const service = new MockConsoleService();
-  service.subscriptions[0].tokenMetadata = undefined;
-  renderAt(`/subscriptions/edit/${service.subscriptions[0].name}`, service);
+  renderAt('/subscriptions/edit/data-science', service);
   const organization = await screen.findByRole('combobox', { name: 'Organization' });
   expect(organization).toHaveAttribute('aria-invalid', 'true');
   expect(screen.getByText('Select an organization')).toBeVisible();
@@ -828,16 +843,18 @@ it('keeps a set organization read-only when editing', async () => {
   renderAt('/subscriptions/edit/engineering', new MockConsoleService());
   const organization = await screen.findByTestId('subscription-organization');
   expect(organization).toHaveAttribute('readonly');
-  expect(organization).toHaveValue('acme-robotics');
+  // Its name, once Tenants/List has answered.
+  await waitFor(() => expect(organization).toHaveValue('acme-robotics'));
   expect(screen.getByText('The organization can’t be changed once it is set.')).toBeVisible();
 });
 
-it('shows Not found for a referenced model the hub no longer has, even with a namespace', async () => {
+it('shows Not found for a referenced model the backend has no registration for', async () => {
   const service = new MockConsoleService();
-  const seed = structuredClone(seedSubscriptions()[0]);
-  seed.modelRefs = [{ name: 'gone', namespace: 'ai-grid-models', tokenRateLimits: [{ limit: 5, window: '1m' }] }];
-  service.subscriptions = [seed];
-  renderAt(`/subscriptions/view/${seed.name}`, service);
+  const seed = engineering();
+  seed.spec!.modelRefs[0].name = 'gone';
+  seed.spec!.modelRefs[0].namespace = SUBSCRIPTION_NAMESPACE;
+  onlySubscriptions(service, seed);
+  renderAt(`/subscriptions/view/${seed.id}`, service);
   expect(await screen.findByTestId('subscription-models-table')).toHaveTextContent('Not found');
 });
 
@@ -852,9 +869,7 @@ it('reloads a subscription after a stale delete, keeping the typed name, so a re
   await user.click(within(modal).getByTestId('delete-modal-input'));
   await user.paste('Engineering');
   // Someone else saves the subscription while the dialog is open.
-  service.subscriptions = service.subscriptions.map((s) =>
-    s.name === 'engineering' ? { ...s, resourceVersion: String(Number(s.resourceVersion) + 1) } : s,
-  );
+  stored(service, 'engineering').metadata!.version += 1;
   await user.click(within(modal).getByRole('button', { name: 'Delete' }));
   expect(
     await within(modal).findByText('This subscription changed since you opened this dialog. Check it and try again.'),
@@ -862,11 +877,12 @@ it('reloads a subscription after a stale delete, keeping the typed name, so a re
   expect(within(modal).getByTestId('delete-modal-input')).toHaveValue('Engineering');
   await user.click(within(modal).getByRole('button', { name: 'Delete' }));
   expect(await screen.findByText('Subscription deleted')).toBeVisible();
-  expect(service.subscriptions.some((s) => s.name === 'engineering')).toBe(false);
+  expect(subscriptionsOf(service).subscriptions.some((s) => s.id === 'engineering')).toBe(false);
 });
 
 it('keeps the delete dialog busy until the reloaded version is in, and says when the reload fails', async () => {
   const service = new MockConsoleService();
+  const fake = subscriptionsOf(service);
   const user = userEvent.setup();
   renderAt('/subscriptions/view/engineering', service);
   await screen.findByTestId('subscription-details-section');
@@ -875,31 +891,29 @@ it('keeps the delete dialog busy until the reloaded version is in, and says when
   const modal = await screen.findByTestId('delete-subscription-modal');
   await user.click(within(modal).getByTestId('delete-modal-input'));
   await user.paste('Engineering');
-  service.subscriptions = service.subscriptions.map((s) =>
-    s.name === 'engineering' ? { ...s, resourceVersion: String(Number(s.resourceVersion) + 1) } : s,
-  );
-  const deleteSpy = vi.spyOn(service, 'deleteSubscription');
-  const getInfo = service.getSubscriptionInfo.bind(service);
-  const reload = deferred<Awaited<ReturnType<typeof service.getSubscriptionInfo>>>();
-  const reloadSpy = vi.spyOn(service, 'getSubscriptionInfo').mockReturnValueOnce(reload.promise);
+  stored(service, 'engineering').metadata!.version += 1;
+  const reload = deferred<void>();
+  const getCalls = () => fake.sent('get').length;
+  const before = getCalls();
+  fake.before.get = () => reload.promise;
   await user.click(within(modal).getByRole('button', { name: 'Delete' }));
-  await waitFor(() => expect(reloadSpy).toHaveBeenCalledTimes(1));
+  await waitFor(() => expect(getCalls()).toBe(before + 1));
   // The reload is still out: Delete stays busy, so no retry with the stale version.
   expect(within(modal).getByRole('button', { name: /Delete/ })).toBeDisabled();
   await user.type(within(modal).getByTestId('delete-modal-input'), '{Enter}');
-  expect(deleteSpy).toHaveBeenCalledTimes(1);
-  await act(async () => {
-    reload.resolve(await getInfo('engineering'));
-  });
+  expect(fake.sent('delete')).toHaveLength(1);
+  await act(async () => reload.resolve());
   expect(within(modal).getByRole('button', { name: 'Delete' })).toBeEnabled();
 
   // A second stale delete whose reload fails says so.
-  service.subscriptions = service.subscriptions.map((s) =>
-    s.name === 'engineering' ? { ...s, resourceVersion: String(Number(s.resourceVersion) + 1) } : s,
-  );
-  reloadSpy.mockRejectedValueOnce(new ServiceError(503, 'Service unavailable.'));
+  stored(service, 'engineering').metadata!.version += 1;
+  fake.before.get = () => {
+    throw new ConnectError('down', Code.Unavailable);
+  };
   await user.click(within(modal).getByRole('button', { name: 'Delete' }));
-  expect(await within(modal).findByText(/could not be loaded again: Service unavailable\./)).toBeVisible();
+  expect(
+    await within(modal).findByText(/could not be loaded again: the AI Grid backend is unavailable; try again/),
+  ).toBeVisible();
   expect(within(modal).getByRole('button', { name: 'Delete' })).toBeEnabled();
 });
 
@@ -922,19 +936,15 @@ it('asks before Cancel discards the subscription form’s input', async () => {
 });
 
 it('shows a window the form cannot read as it is, and saves it only once a new time is entered', async () => {
-  const seed = structuredClone(seedSubscriptions()[0]);
-  seed.modelRefs[0] = {
-    ...seed.modelRefs[0],
-    tokenRateLimits: [
-      { limit: 5000, window: '1h' },
-      { limit: 100, window: '2d' },
-    ],
-  };
+  const seed = engineering();
+  seed.spec!.modelRefs[0].tokenRateLimits = [
+    { $typeName: 'ai_grid.v1.TokenRateLimit', limit: 5000n, window: '1h' },
+    { $typeName: 'ai_grid.v1.TokenRateLimit', limit: 100n, window: '2d' },
+  ];
   const service = new MockConsoleService();
-  service.subscriptions = [seed];
-  const update = vi.spyOn(service, 'updateSubscription');
+  onlySubscriptions(service, seed);
   const user = userEvent.setup();
-  renderAt(`/subscriptions/edit/${seed.name}`, service);
+  renderAt(`/subscriptions/edit/${seed.id}`, service);
   const models = await screen.findByTestId('subscription-models-table');
   await user.click(within(models).getByRole('button', { name: /^5,000 \/ 1 hour\s*100 \/ 2d$/ }));
   const dialog = screen.getByRole('dialog', { name: 'Edit token limits' });
@@ -967,10 +977,10 @@ it('shows a window the form cannot read as it is, and saves it only once a new t
   await user.click(within(dialog).getByTestId('save-rate-limits'));
   expect(dialog).not.toBeInTheDocument();
   await user.click(screen.getByTestId('update-subscription-button'));
-  await waitFor(() => expect(update).toHaveBeenCalled());
-  expect(update.mock.calls[0][1].modelRefs[0].tokenRateLimits).toEqual([
-    { limit: 5000, window: '1h' },
-    { limit: 100, window: '48h' },
+  await waitFor(() => expect(subscriptionsOf(service).sent('update')).toHaveLength(1));
+  expect(subscriptionsOf(service).sent('update')[0].object?.spec?.modelRefs?.[0].tokenRateLimits).toEqual([
+    expect.objectContaining({ limit: 5000n, window: '1h' }),
+    expect.objectContaining({ limit: 100n, window: '48h' }),
   ]);
 });
 
@@ -1024,4 +1034,13 @@ it('names the priority buttons and the groups menu for what they change', async 
   expect(screen.getByRole('button', { name: 'Groups options' })).toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Organization options' })).toBeInTheDocument();
   expect(screen.queryByRole('button', { name: 'Menu toggle' })).not.toBeInTheDocument();
+});
+
+it('caps a new subscription id at the backend maximum, leaving room for -policy', async () => {
+  const user = userEvent.setup();
+  renderAt('/subscriptions/create', new MockConsoleService());
+  await user.click(await screen.findByTestId('subscription-name-desc-name'));
+  await user.paste('a'.repeat(70));
+  await user.click(screen.getByTestId('subscription-name-desc-editResourceLink'));
+  expect(screen.getByTestId('subscription-name-desc-resourceName')).toHaveValue('a'.repeat(56));
 });

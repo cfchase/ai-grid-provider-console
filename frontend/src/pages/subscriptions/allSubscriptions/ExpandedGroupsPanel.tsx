@@ -2,10 +2,9 @@
 // packages/maas/frontend/src/app/shared/ExpandedGroupsPanel.tsx
 // upstream commit: 6f47c0f775d19c89ef02f74d192b32dc7d3c669d
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
-import type { GroupReference } from '../../../api/types';
 
 /** A subscription's groups in its row's expansion. */
-export const ExpandedGroupsPanel: React.FC<{ groups: GroupReference[] }> = ({ groups }) => (
+export const ExpandedGroupsPanel: React.FC<{ groups: string[] }> = ({ groups }) => (
   <Table aria-label="Subscription groups" variant="compact" data-testid="subscription-groups-expanded-panel">
     <Thead>
       <Tr>
@@ -19,8 +18,8 @@ export const ExpandedGroupsPanel: React.FC<{ groups: GroupReference[] }> = ({ gr
         </Tr>
       ) : (
         groups.map((group) => (
-          <Tr key={group.name} data-testid="expanded-subscription-group-row">
-            <Td dataLabel="Group name">{group.name}</Td>
+          <Tr key={group} data-testid="expanded-subscription-group-row">
+            <Td dataLabel="Group name">{group}</Td>
           </Tr>
         ))
       )}

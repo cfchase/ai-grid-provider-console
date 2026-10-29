@@ -4,10 +4,9 @@
 // upstream commit: 8051fbbea117457b4da4074fb2856b732e6677a4
 import { Bullseye, Content } from '@patternfly/react-core';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
-import type { GroupReference } from '../../../api/types';
 import { DetailsSection } from '../../../components/DetailsSection';
 
-type Props = { groups: GroupReference[] };
+type Props = { groups: string[] };
 
 export const SubscriptionGroupsSection: React.FC<Props> = ({ groups }) => (
   <div data-testid="subscription-groups-section">
@@ -29,8 +28,8 @@ export const SubscriptionGroupsSection: React.FC<Props> = ({ groups }) => (
           </Thead>
           <Tbody>
             {groups.map((group) => (
-              <Tr key={group.name}>
-                <Td dataLabel="Name">{group.name}</Td>
+              <Tr key={group}>
+                <Td dataLabel="Name">{group}</Td>
               </Tr>
             ))}
           </Tbody>

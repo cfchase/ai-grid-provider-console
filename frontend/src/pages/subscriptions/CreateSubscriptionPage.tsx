@@ -5,16 +5,13 @@
 // The PoC's preSelectedModel and breadcrumbLabel router state are dropped: nothing sets them.
 import { Link, useLocation } from 'react-router-dom';
 import { Breadcrumb, BreadcrumbItem } from '@patternfly/react-core';
-import type { GovernanceService } from '../../context/useMaaSGovernanceContext';
-import { useMaaSGovernanceContext } from '../../context/useMaaSGovernanceContext';
-import { getBackUrl } from '../../utilities/maasGovernanceNavigation';
 import { PageStateSection } from '../../components/states/PageStateSection';
+import { getBackUrl } from '../../utilities/maasGovernanceNavigation';
 import { CreateSubscriptionForm } from './createSubscription/CreateSubscriptionForm';
+import { useModelList } from './useSubscriptions';
 
-type Props = { service: GovernanceService };
-
-export const CreateSubscriptionPage: React.FC<Props> = ({ service }) => {
-  const { modelRefs, loaded, error, refresh } = useMaaSGovernanceContext();
+export const CreateSubscriptionPage: React.FC = () => {
+  const { data: models, loaded, error, refresh } = useModelList();
   const { state } = useLocation();
   const backUrl = getBackUrl(state, 'subscriptions');
 
@@ -36,12 +33,12 @@ export const CreateSubscriptionPage: React.FC<Props> = ({ service }) => {
       }
       loaded={loaded}
       error={error}
-      onRetry={refresh}
+      onRetry={() => void refresh()}
       subject="Subscriptions"
       loadingLabel="Loading subscription form"
       hasBodyWrapper={false}
     >
-      <CreateSubscriptionForm service={service} modelRefs={modelRefs} returnTo={backUrl} />
+      <CreateSubscriptionForm models={models} returnTo={backUrl} />
     </PageStateSection>
   );
 };

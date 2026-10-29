@@ -10,13 +10,10 @@ import type {
   EnvVar,
   GridCluster,
   IdentityProvider,
-  MaaSAuthPolicy,
-  MaaSSubscription,
   ManagedModel,
   ModelPlacementSpec,
   ModelWork,
   Organization,
-  SubscriptionInfoResponse,
 } from './types';
 
 // The one place that turns the BFF's JSON into the types the pages read. It renames
@@ -67,41 +64,6 @@ export const toGridCluster = (json: ApiCluster): GridCluster => ({
   conditions: json.conditions ?? [],
   resourceVersion: json.resourceVersion,
   labels: json.labels ?? {},
-});
-
-/**
- * A MaaS resource as the BFF returns it, with its Ready condition picked into the fields the
- * PoC's pages read (reason, statusMessage, status, conditionType, lastTransitionTime).
- */
-const withReadyCondition = <T extends MaaSSubscription | MaaSAuthPolicy>(json: T): T => {
-  const ready = json.conditions?.find((c) => c.type === 'Ready');
-  const out: T = { ...json };
-  if (ready) {
-    out.status = ready.status;
-    out.reason = ready.reason;
-    out.statusMessage = ready.message;
-    out.conditionType = ready.type;
-    out.lastTransitionTime = ready.lastTransitionTime;
-  }
-  return out;
-};
-
-/**
- * A subscription with its Ready condition picked into its status fields. A subscription the
- * controller hasn't reconciled has no phase (the controller never writes Pending); the label
- * shows it as Unknown, as odh-dashboard does.
- */
-export const toSubscription = (json: MaaSSubscription): MaaSSubscription => withReadyCondition(json);
-
-/**
- * GET /subscriptions/{name}, with its subscription adapted by toSubscription and each policy's
- * Ready condition picked into its status fields the same way: the BFF sends a policy's
- * conditions only.
- */
-export const toSubscriptionInfo = (json: SubscriptionInfoResponse): SubscriptionInfoResponse => ({
-  ...json,
-  subscription: toSubscription(json.subscription),
-  authPolicies: Array.isArray(json.authPolicies) ? json.authPolicies.map(withReadyCondition) : json.authPolicies,
 });
 
 const toIdentityProvider = (json: NonNullable<ApiTenant['identityProvider']>): IdentityProvider => {

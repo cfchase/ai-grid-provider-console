@@ -10,27 +10,29 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Tooltip } from '@patternfly/react-core';
 import { ExpandableRowContent, TableText, Tbody, Td, Tr } from '@patternfly/react-table';
-import type { MaaSSubscription, ManagedModel } from '../../../api/types';
+import type { Model } from '../../../gen/ai_grid/v1/model_type_pb';
+import type { Subscription } from '../../../gen/ai_grid/v1/subscription_type_pb';
 import { PhaseLabel } from '../Phase/PhaseLabel';
 import { SimpleMenuActions } from '../../../components/SimpleMenuActions';
 import { TableRowTitleDescription } from '../../../components/TableRowTitleDescription';
 import { getSubscriptionEditUrl, getSubscriptionViewUrl } from '../../../utilities/maasGovernanceNavigation';
 import { EMPTY_VALUE } from '../../../utilities/format';
+import { descriptionOf, displayNameOf, groupsOf, isDeleting, modelRefsOf, readyConditionOf } from '../subscriptionText';
 import type { SubscriptionColumn } from './columns';
 import { ExpandedGroupsPanel } from './ExpandedGroupsPanel';
 import type { ModelsState } from './ExpandedModelsPanel';
 import { ExpandedModelsPanel } from './ExpandedModelsPanel';
 
 type Props = {
-  subscription: MaaSSubscription;
+  subscription: Subscription;
   columns: SubscriptionColumn[];
   organization: string;
-  /** The hub's models, for the models expansion, and whether they have loaded. */
-  models: ManagedModel[];
+  /** The models, for the models expansion, and whether they have loaded. */
+  models: Model[];
   modelsState: ModelsState;
   siteNames: Map<string, string>;
   canWrite: boolean;
-  onDelete: (subscription: MaaSSubscription) => void;
+  onDelete: (subscription: Subscription) => void;
 };
 
 type Panel = 'groups' | 'models';
@@ -47,14 +49,17 @@ export const SubscriptionTableRow: React.FC<Props> = ({
 }) => {
   const navigate = useNavigate();
   const [expanded, setExpanded] = useState<Panel>();
-  const groups = Array.isArray(subscription.owner.groups) ? subscription.owner.groups : [];
-  const deleting = !!subscription.deletionTimestamp;
-  const title = subscription.displayName ?? subscription.name;
+  const groups = groupsOf(subscription);
+  const modelRefs = modelRefsOf(subscription);
+  const deleting = isDeleting(subscription);
+  const title = displayNameOf(subscription);
+  const description = descriptionOf(subscription);
+  const ready = readyConditionOf(subscription.status?.conditions);
 
   // A subscription being deleted can't be changed: its items stay, disabled, with why.
   const deletingReason = deleting ? 'This subscription is being deleted.' : undefined;
 
-  const panelId = (panel: Panel) => `subscription-${subscription.name}-${panel}-panel`;
+  const panelId = (panel: Panel) => `subscription-${subscription.id}-${panel}-panel`;
 
   /**
    * The Groups or Models cell: its count toggles that panel, and only one is open at a time.
@@ -72,7 +77,7 @@ export const SubscriptionTableRow: React.FC<Props> = ({
         <button
           type="button"
           className="pf-v6-c-table__button"
-          id={`subscription-${subscription.name}-${panel}-toggle`}
+          id={`subscription-${subscription.id}-${panel}-toggle`}
           aria-expanded={isExpanded}
           aria-controls={panelId(panel)}
           onClick={() => setExpanded((open) => (open === panel ? undefined : panel))}
@@ -92,15 +97,15 @@ export const SubscriptionTableRow: React.FC<Props> = ({
               deleting ? (
                 <span data-testid="subscription-name">{title}</span>
               ) : (
-                <Tooltip content={`Resource name: ${subscription.name}`}>
-                  <Link to={getSubscriptionViewUrl(subscription.name)}>{title}</Link>
+                <Tooltip content={`Resource name: ${subscription.id}`}>
+                  <Link to={getSubscriptionViewUrl(subscription.id)}>{title}</Link>
                 </Tooltip>
               )
             }
             subtitle={
-              subscription.description && (
+              description && (
                 <div className="console-clamp-2" data-testid="subscription-description">
-                  {subscription.description}
+                  {description}
                 </div>
               )
             }
@@ -110,16 +115,12 @@ export const SubscriptionTableRow: React.FC<Props> = ({
           {organization || EMPTY_VALUE}
         </Td>
         <Td dataLabel={columns[2].label}>
-          <PhaseLabel
-            phase={subscription.phase}
-            statusMessage={subscription.statusMessage}
-            reason={subscription.reason}
-          />
+          <PhaseLabel phase={subscription.status?.phase} statusMessage={ready.statusMessage} reason={ready.reason} />
         </Td>
         {expandCell('groups', 3, groups.length)}
-        {expandCell('models', 4, subscription.modelRefs.length)}
+        {expandCell('models', 4, modelRefs.length)}
         <Td dataLabel={columns[5].label} className="console-number">
-          {subscription.priority ?? EMPTY_VALUE}
+          {subscription.spec?.priority ?? EMPTY_VALUE}
         </Td>
         {canWrite && (
           <Td isActionCell>
@@ -130,13 +131,13 @@ export const SubscriptionTableRow: React.FC<Props> = ({
                 {
                   key: 'view',
                   label: 'View details',
-                  onClick: () => navigate(getSubscriptionViewUrl(subscription.name)),
+                  onClick: () => navigate(getSubscriptionViewUrl(subscription.id)),
                 },
                 {
                   key: 'edit',
                   label: 'Edit',
                   disabledReason: deletingReason,
-                  onClick: () => navigate(getSubscriptionEditUrl(subscription.name)),
+                  onClick: () => navigate(getSubscriptionEditUrl(subscription.id)),
                 },
                 { isSpacer: true },
                 {
@@ -163,7 +164,7 @@ export const SubscriptionTableRow: React.FC<Props> = ({
           <ExpandableRowContent>
             {expanded === 'models' && (
               <ExpandedModelsPanel
-                modelRefs={subscription.modelRefs}
+                modelRefs={modelRefs}
                 models={models}
                 modelsState={modelsState}
                 siteNames={siteNames}

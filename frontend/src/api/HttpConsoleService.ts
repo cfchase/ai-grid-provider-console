@@ -1,12 +1,5 @@
 import type { DashboardResource } from '@perses-dev/client';
-import {
-  toGridCluster,
-  toManagedModel,
-  toModelCreate,
-  toOrganization,
-  toSubscription,
-  toSubscriptionInfo,
-} from './adapters';
+import { toGridCluster, toManagedModel, toModelCreate, toOrganization } from './adapters';
 import type { ConsoleService } from './ConsoleService';
 import { RelayedError, ServiceError } from './ConsoleService';
 import { PERSES_API } from './monitoring';
@@ -16,17 +9,12 @@ import type {
   ApiTenant,
   ConsoleConfig,
   CreateModelRequest,
-  CreateSubscriptionRequest,
-  CreateSubscriptionResponse,
   GridOverview,
   GridRange,
-  MaaSSubscription,
   ManagedModel,
   ModelUpdate,
   Organization,
   OrganizationInput,
-  SubscriptionInfoResponse,
-  UpdateSubscriptionRequest,
   User,
 } from './types';
 
@@ -150,40 +138,6 @@ export class HttpConsoleService implements ConsoleService {
     return this.request<void>('DELETE', `/models/${encodeURIComponent(namespace)}/${encodeURIComponent(name)}`, {
       ifMatch: resourceVersion,
     });
-  }
-
-  async listSubscriptions(): Promise<MaaSSubscription[]> {
-    return (await this.request<MaaSSubscription[]>('GET', '/subscriptions')).map(toSubscription);
-  }
-
-  /** The subscription, with its referenced models as the BFF's model JSON mapped by toManagedModel. */
-  async getSubscriptionInfo(name: string): Promise<SubscriptionInfoResponse> {
-    const info = await this.request<Omit<SubscriptionInfoResponse, 'modelRefs'> & { modelRefs?: ApiModel[] }>(
-      'GET',
-      `/subscriptions/${encodeURIComponent(name)}`,
-    );
-    return toSubscriptionInfo({ ...info, modelRefs: (info.modelRefs ?? []).map(toManagedModel) });
-  }
-
-  async createSubscription(input: CreateSubscriptionRequest): Promise<CreateSubscriptionResponse> {
-    const out = await this.request<CreateSubscriptionResponse>('POST', '/subscriptions', { body: input });
-    return { ...out, subscription: toSubscription(out.subscription) };
-  }
-
-  async updateSubscription(
-    name: string,
-    input: UpdateSubscriptionRequest,
-    resourceVersion: string,
-  ): Promise<CreateSubscriptionResponse> {
-    const out = await this.request<CreateSubscriptionResponse>('PUT', `/subscriptions/${encodeURIComponent(name)}`, {
-      body: input,
-      ifMatch: resourceVersion,
-    });
-    return { ...out, subscription: toSubscription(out.subscription) };
-  }
-
-  deleteSubscription(name: string, resourceVersion: string): Promise<void> {
-    return this.request<void>('DELETE', `/subscriptions/${encodeURIComponent(name)}`, { ifMatch: resourceVersion });
   }
 
   async getGridOverview(

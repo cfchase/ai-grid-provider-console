@@ -19,6 +19,10 @@ import { ServiceError } from '../api/ConsoleService';
 import { consolePlacement } from '../api/adapters';
 import { HttpConsoleService } from '../api/HttpConsoleService';
 import { MockConsoleService } from '../api/MockConsoleService';
+import { create } from '@bufbuild/protobuf';
+import { ConnectError, Code } from '@connectrpc/connect';
+import { SubscriptionSchema } from '../gen/ai_grid/v1/subscription_type_pb';
+import { ACME_ID, SUBSCRIPTION_NAMESPACE, subscriptionsOf } from './connectSubscriptions';
 import type { CreateModelRequest, ManagedModel } from '../api/types';
 import { serviceOnBffExamples } from './bffExamples';
 import { deferred, renderAt } from './render';
@@ -171,17 +175,31 @@ it('leaves the deploy form out of history once the model is deployed, so Back sk
   expect(await screen.findByRole('heading', { level: 1, name: 'Clusters' })).toBeVisible();
 });
 
+/** Subscription "widget-users", whose ref the backend joins to model "widget" (Subscriptions/List). */
+const widgetUsers = (service: MockConsoleService) =>
+  subscriptionsOf(service).subscriptions.push(
+    create(SubscriptionSchema, {
+      id: 'widget-users',
+      metadata: { name: 'widget-users', version: 1 },
+      spec: {
+        owner: { groups: ['widget-users'] },
+        organization: { id: ACME_ID },
+        modelRefs: [
+          { name: 'widget', namespace: SUBSCRIPTION_NAMESPACE, tokenRateLimits: [{ limit: 1000n, window: '1h' }] },
+        ],
+      },
+    }),
+  );
+
 /** A model "widget" that subscription "widget-users" uses. */
 const referencedModel = async (service: MockConsoleService) => {
   const result = await service.createModel(input);
-  await service.createSubscription({
-    name: 'widget-users',
-    owner: { groups: [{ name: 'widget-users' }] },
-    modelRefs: [{ name: 'widget', tokenRateLimits: [{ limit: 1000, window: '1h' }] }],
-    priority: 0,
-    tokenMetadata: { organizationId: '3f1c9a72-5b6e-4d2a-8c01-2d3e4f5a6b7c' },
-    createAuthPolicy: true,
-  });
+  widgetUsers(service);
+  // The backend refuses to delete a model a subscription names (models_server.go, FailedPrecondition).
+  service.deleteModel = () =>
+    Promise.reject(
+      new ServiceError(412, 'Remove this model from its subscriptions and authorization policies before deleting it.'),
+    );
   return result;
 };
 
@@ -211,7 +229,7 @@ it('disables Delete while subscriptions use the model, and says why', async () =
 it('leaves Delete to the backend when the subscriptions fail to load, and keeps the dialog when it refuses', async () => {
   const service = new MockConsoleService();
   const result = await referencedModel(service);
-  service.listSubscriptions = () => Promise.reject(new ServiceError(503, 'Service unavailable.'));
+  subscriptionsOf(service).listError = new ConnectError('Service unavailable.', Code.Unavailable);
   const user = userEvent.setup();
   renderAt('/models', service);
   await user.click(await screen.findByTestId('model-actions-widget'));
@@ -949,28 +967,19 @@ it('keeps an emptied Replicas or GPUs field empty and says it is required', asyn
   expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled();
 });
 
-it("names only the subscriptions that use this model, reading no namespace as the console's", async () => {
+it('names only the subscriptions whose refs the backend joins to this model', async () => {
   const service = new MockConsoleService();
   await service.createModel(input);
-  const widget = service.models.find((m) => m.name === 'widget')!;
-  service.models.push({ ...widget, namespace: 'team-models', resourceVersion: '1' });
-  await service.createSubscription({
-    name: 'widget-users',
-    owner: { groups: [{ name: 'widget-users' }] },
-    modelRefs: [{ name: 'widget', tokenRateLimits: [{ limit: 1000, window: '1h' }] }],
-    priority: 0,
-    tokenMetadata: { organizationId: '3f1c9a72-5b6e-4d2a-8c01-2d3e4f5a6b7c' },
-    createAuthPolicy: true,
-  });
+  widgetUsers(service);
   const user = userEvent.setup();
-  const team = renderAt('/models/team-models/widget', service);
+  const other = renderAt('/models/ai-grid-models/granite-research', service);
   await user.click(await screen.findByTestId('model-actions'));
   await user.click(screen.getByRole('menuitem', { name: 'Delete' }));
   expect(await screen.findByTestId('delete-deployment-modal')).toBeVisible();
-  // Let the subscriptions and config load before checking nothing is named.
+  // Let the subscriptions load before checking nothing is named.
   await act(async () => {});
   expect(screen.queryByTestId('model-references')).not.toBeInTheDocument();
-  team.unmount();
+  other.unmount();
   renderAt('/models/ai-grid-models/widget', service);
   await user.click(await screen.findByTestId('model-actions'));
   await user.click(screen.getByRole('menuitem', { name: 'Delete' }));

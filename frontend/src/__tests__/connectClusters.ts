@@ -10,6 +10,7 @@ import { ServiceError } from '../api/ConsoleService';
 import type { GridMembership } from '../api/clusters';
 import { fakeClients, type FakeBackend } from '../api/connect/testing';
 import type { GridCluster } from '../api/types';
+import { subscriptionsBackend, type SubscriptionsSource } from './connectSubscriptions';
 import {
   ManagedClusterLocationSource,
   ManagedClusterSchema,
@@ -47,7 +48,7 @@ const asConnectError = (err: unknown) =>
     ? new ConnectError(err.message, codes[err.status] ?? Code.Unknown)
     : ConnectError.from(err);
 
-const call = async <T>(fn: () => Promise<T>) => {
+export const call = async <T>(fn: () => Promise<T>) => {
   try {
     return await fn();
   } catch (err) {
@@ -173,10 +174,12 @@ export const clustersBackend = (service: ClusterSource & Writes) =>
   }) satisfies FakeBackend['clusters'];
 
 /**
- * A Connect transport whose Clusters service is the service's clusters, built with the console's
+ * A Connect transport whose Clusters service is the service's clusters, and whose Subscriptions,
+ * Models/List and Tenants/List are connectSubscriptions.ts's over the service, built with the console's
  * interceptors, so an Unauthenticated answer checks the session as the browser's transport does.
  */
 export const transportFor =
-  (service: ClusterSource & Writes): TransportWith =>
+  (service: ClusterSource & Writes & SubscriptionsSource): TransportWith =>
   (interceptors) =>
-    fakeClients({ clusters: clustersBackend(service) }, { interceptors }).transport;
+    fakeClients({ clusters: clustersBackend(service), ...subscriptionsBackend(service, call) }, { interceptors })
+      .transport;

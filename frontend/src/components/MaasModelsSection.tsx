@@ -2,7 +2,8 @@
 // Adapted from opendatahub-io/odh-dashboard
 // packages/maas/frontend/src/app/shared/MaasModelsSection.tsx
 // upstream commit: 8051fbbea117457b4da4074fb2856b732e6677a4
-// Only the subscription uses are ported, so the PoC's customization props are dropped.
+// Only the subscription uses are ported, so the PoC's customization props are dropped. The page
+// words each row (its title, status and limits) from the backend's messages.
 import { Fragment } from 'react';
 import {
   Bullseye,
@@ -17,17 +18,27 @@ import {
 } from '@patternfly/react-core';
 import { MinusCircleIcon, PlusCircleIcon } from '@patternfly/react-icons';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
-import type { MaaSModelRefSummary, ModelSubscriptionRef } from '../api/types';
-import { formatTokenLimits } from '../pages/subscriptions/viewSubscription/utils';
-import { isSameModel, modelKey } from '../utilities/authpolicies';
-import { MODEL_NOT_FOUND_STATUS_MESSAGE, normalizePhase } from '../utilities/phaseLabelUtils';
+import { formatTokenRateLimitLine, type TokenLimit } from '../utilities/rateLimits';
 import { DetailsSection } from './DetailsSection';
 import { StatusLabel } from './StatusLabel';
 import { TableRowTitleDescription } from './TableRowTitleDescription';
 
+/** One model of a subscription, as the section shows it. */
+export type SubscriptionModelRow = {
+  key: string;
+  /** The model's display name, else its name. */
+  title: string;
+  /** The ref's name: the model's id. */
+  name: string;
+  /** The status label's word, and its reason in the tooltip. */
+  status: string;
+  reason?: string;
+  tokenRateLimits: TokenLimit[];
+  unlimited: boolean;
+};
+
 type Props = {
-  modelRefSummaries: MaaSModelRefSummary[];
-  modelRefsWithRateLimits?: ModelSubscriptionRef[];
+  rows: SubscriptionModelRow[];
   /** A form field with add, edit-limits and remove actions, instead of a read-only section. */
   editable?: boolean;
   onAddModels?: () => void;
@@ -42,18 +53,14 @@ type Props = {
  * than an error before the user has done anything.
  */
 export const MaasModelsSection: React.FC<Props> = ({
-  modelRefSummaries,
-  modelRefsWithRateLimits = [],
+  rows,
   editable = false,
   onAddModels,
   onEditLimits,
   onRemoveModel,
   validationError,
 }) => {
-  const isUnlimited = (model: MaaSModelRefSummary) =>
-    !!modelRefsWithRateLimits.find((ref) => isSameModel(ref, model))?.unlimited;
-
-  const table = modelRefSummaries.length > 0 && (
+  const table = rows.length > 0 && (
     <Table aria-label="subscription models" variant="compact" data-testid="subscription-models-table">
       <Thead>
         <Tr>
@@ -64,8 +71,10 @@ export const MaasModelsSection: React.FC<Props> = ({
         </Tr>
       </Thead>
       <Tbody>
-        {modelRefSummaries.map((modelRef, index) => {
-          const tokenLimitsLines = formatTokenLimits(modelRefsWithRateLimits, modelRef);
+        {rows.map((row, index) => {
+          const tokenLimitsLines = row.tokenRateLimits.map(({ limit, window }) =>
+            formatTokenRateLimitLine(limit, window),
+          );
           const tokenLimitsDisplay = tokenLimitsLines.map((line, i) => (
             <Fragment key={i}>
               {i > 0 && <br />}
@@ -73,7 +82,7 @@ export const MaasModelsSection: React.FC<Props> = ({
             </Fragment>
           ));
           let tokenLimits: React.ReactNode = tokenLimitsDisplay;
-          if (isUnlimited(modelRef)) {
+          if (row.unlimited) {
             tokenLimits = 'Unlimited';
           } else if (editable && onEditLimits) {
             tokenLimits =
@@ -108,19 +117,12 @@ export const MaasModelsSection: React.FC<Props> = ({
           }
 
           return (
-            <Tr key={modelKey(modelRef)}>
+            <Tr key={row.key}>
               <Td dataLabel="Name">
-                <TableRowTitleDescription
-                  title={<strong>{modelRef.displayName ?? modelRef.name}</strong>}
-                  subtitle={<code>{modelRef.name}</code>}
-                />
+                <TableRowTitleDescription title={<strong>{row.title}</strong>} subtitle={<code>{row.name}</code>} />
               </Td>
               <Td dataLabel="Status">
-                {modelRef.notFound ? (
-                  <StatusLabel isCompact status="Not found" reason={MODEL_NOT_FOUND_STATUS_MESSAGE} />
-                ) : (
-                  <StatusLabel isCompact status={normalizePhase(modelRef.phase)} reason={modelRef.statusMessage} />
-                )}
+                <StatusLabel isCompact status={row.status} reason={row.reason} />
               </Td>
               <Td dataLabel="Token limits">{tokenLimits}</Td>
               {editable && (
@@ -128,7 +130,7 @@ export const MaasModelsSection: React.FC<Props> = ({
                   <Button
                     variant="plain"
                     icon={<MinusCircleIcon />}
-                    aria-label={`Remove ${modelRef.displayName ?? modelRef.name}`}
+                    aria-label={`Remove ${row.title}`}
                     onClick={() => onRemoveModel?.(index)}
                   />
                 </Td>
@@ -174,7 +176,7 @@ export const MaasModelsSection: React.FC<Props> = ({
   return (
     <div data-testid="subscription-models-section">
       <DetailsSection title="Models">
-        {modelRefSummaries.length === 0 ? (
+        {rows.length === 0 ? (
           <Bullseye>
             <Content component="p">No models assigned to this subscription.</Content>
           </Bullseye>

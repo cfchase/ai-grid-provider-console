@@ -3,7 +3,12 @@
 // packages/maas/frontend/src/app/utilities/rateLimits.ts
 // upstream commit: 8051fbbea117457b4da4074fb2856b732e6677a4
 import { z } from 'zod';
-import type { TokenRateLimit } from '../api/types';
+
+/**
+ * A subscription's token limit: TokenRateLimit with its int64 limit as a number, which
+ * validateSubscriptionSpec (the backend's internal/servers/subscriptions_server.go) caps at 1e9.
+ */
+export type TokenLimit = { limit: number; window: string };
 
 /**
  * A token limit as the form edits it: count tokens per time unit(s). savedWindow is the window it
@@ -57,10 +62,10 @@ export const formatTokenRateLimitLine = (limit: number, window: string): string 
   `${formatLocaleNumber(limit)} / ${formatWindow(window)}`;
 
 /**
- * Converts a BFF TokenRateLimit to the UI's RateLimit form. A window the form cannot read gets no
+ * Converts a TokenLimit to the UI's RateLimit form. A window the form cannot read gets no
  * time, rather than a guess, and keeps the saved window so the form can name it.
  */
-export const toRateLimit = (trl: TokenRateLimit): RateLimit => {
+export const toRateLimit = (trl: TokenLimit): RateLimit => {
   const parsed = parseWindow(trl.window);
   return parsed
     ? { count: trl.limit, time: parsed.time, unit: parsed.unit }
@@ -73,8 +78,8 @@ export const getSavedWindowMessage = (limit: RateLimit): string | undefined =>
     ? `Saved as "${limit.savedWindow}", which MaaS doesn't accept. Enter a time from 1 to 9999.`
     : undefined;
 
-/** Converts the UI's RateLimit form back to a BFF TokenRateLimit. */
-export const toTokenRateLimit = (rl: RateLimit): TokenRateLimit => ({
+/** Converts the UI's RateLimit form back to a TokenLimit. */
+export const toTokenRateLimit = (rl: RateLimit): TokenLimit => ({
   limit: rl.count,
   window: `${rl.time}${UNIT_TO_WINDOW_SUFFIX[rl.unit]}`,
 });

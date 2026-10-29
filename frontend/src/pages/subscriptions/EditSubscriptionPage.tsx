@@ -4,26 +4,22 @@
 // upstream commit: 8051fbbea117457b4da4074fb2856b732e6677a4
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { Breadcrumb, BreadcrumbItem } from '@patternfly/react-core';
-import type { GovernanceService } from '../../context/useMaaSGovernanceContext';
-import { useMaaSGovernanceContext } from '../../context/useMaaSGovernanceContext';
-import { useGetSubscriptionInfo } from './hooks/useGetSubscriptionInfo';
-import { getBackUrl, getSubscriptionViewUrl, subscriptionNotFound } from '../../utilities/maasGovernanceNavigation';
 import { PageStateSection } from '../../components/states/PageStateSection';
+import { getBackUrl, getSubscriptionViewUrl, subscriptionNotFound } from '../../utilities/maasGovernanceNavigation';
 import { CreateSubscriptionForm } from './createSubscription/CreateSubscriptionForm';
+import { displayNameOf } from './subscriptionText';
+import { useModelList, useSubscription } from './useSubscriptions';
 
-type Props = { service: GovernanceService };
-
-export const EditSubscriptionPage: React.FC<Props> = ({ service }) => {
+export const EditSubscriptionPage: React.FC = () => {
   const { subscriptionName = '' } = useParams<{ subscriptionName: string }>();
   const { state } = useLocation();
   const returnTo = getBackUrl(state, 'subscriptions');
-  const [subscriptionInfo, infoLoaded, infoError, reloadInfo] = useGetSubscriptionInfo(service, subscriptionName);
-  const { modelRefs, loaded: formLoaded, error: formError, refresh } = useMaaSGovernanceContext();
+  const { data: info, loaded: infoLoaded, error: infoError, refresh: reloadInfo } = useSubscription(subscriptionName);
+  const { data: models, loaded: modelsLoaded, error: modelsError, refresh: reloadModels } = useModelList();
 
-  const loaded = infoLoaded && formLoaded;
-  const error = infoError || formError;
-  const displayName =
-    subscriptionInfo?.subscription.displayName || subscriptionInfo?.subscription.name || subscriptionName;
+  const loaded = infoLoaded && modelsLoaded;
+  const error = infoError || modelsError;
+  const displayName = info?.object ? displayNameOf(info.object) : subscriptionName;
 
   return (
     <PageStateSection
@@ -47,17 +43,10 @@ export const EditSubscriptionPage: React.FC<Props> = ({ service }) => {
       notFound={subscriptionNotFound(subscriptionName, returnTo)}
       onRetry={() => {
         void reloadInfo();
-        refresh();
+        void reloadModels();
       }}
     >
-      {subscriptionInfo && (
-        <CreateSubscriptionForm
-          service={service}
-          modelRefs={modelRefs}
-          subscriptionInfo={subscriptionInfo}
-          returnTo={returnTo}
-        />
-      )}
+      {info && <CreateSubscriptionForm models={models} subscriptionInfo={info} returnTo={returnTo} />}
     </PageStateSection>
   );
 };

@@ -4,47 +4,54 @@
 // upstream commit: 8051fbbea117457b4da4074fb2856b732e6677a4
 // Telemetry is dropped; a viewer gets no actions; the console adds the Organization. The page
 // has one view, so it shows its sections without odh-dashboard's single "Details" tab, and its status
-// beside its title, as every details page does.
+// beside its title, as every details page does. It reads Subscriptions/Get over Connect.
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Breadcrumb, BreadcrumbItem, Flex } from '@patternfly/react-core';
-import type { SubscriptionsService } from '../../api/subscriptions';
-import type { MaaSModelRefSummary, MaaSSubscription, SubscriptionInfoResponse } from '../../api/types';
 import { MaasModelsSection } from '../../components/MaasModelsSection';
 import { SimpleMenuActions } from '../../components/SimpleMenuActions';
-import type { GovernanceService } from '../../context/useMaaSGovernanceContext';
-import { useMaaSGovernanceContext } from '../../context/useMaaSGovernanceContext';
-import { useGetSubscriptionInfo } from './hooks/useGetSubscriptionInfo';
-import { modelRefsToSummaries } from '../../utilities/authpolicies';
-import { getBackUrl, getSubscriptionEditUrl, subscriptionNotFound } from '../../utilities/maasGovernanceNavigation';
 import { PageStateSection } from '../../components/states/PageStateSection';
-import { PhaseLabel } from './Phase/PhaseLabel';
+import { useConsoleSession } from '../../context/useConsoleSession';
+import type { Subscription } from '../../gen/ai_grid/v1/subscription_type_pb';
+import { getBackUrl, getSubscriptionEditUrl, subscriptionNotFound } from '../../utilities/maasGovernanceNavigation';
 import { useDeleteSubscription } from './hooks/useDeleteSubscription';
+import { PhaseLabel } from './Phase/PhaseLabel';
+import {
+  displayNameOf,
+  groupsOf,
+  isDeleting,
+  modelRefsOf,
+  organizationIdOf,
+  readyConditionOf,
+  refKey,
+  refTitleOf,
+  registrationStatusOf,
+  tenantNameOf,
+  toTokenLimits,
+} from './subscriptionText';
+import { useSubscription, useTenantList } from './useSubscriptions';
 import { SubscriptionDetailsSection } from './viewSubscription/SubscriptionDetailsSection';
 import { SubscriptionGroupsSection } from './viewSubscription/SubscriptionGroupsSection';
 
-type ActionsProps = { service: SubscriptionsService; subscription: MaaSSubscription; returnTo: string };
+type ActionsProps = { subscription: Subscription; returnTo: string };
 
-const SubscriptionActions: React.FC<ActionsProps> = ({ service, subscription, returnTo }) => {
+const SubscriptionActions: React.FC<ActionsProps> = ({ subscription, returnTo }) => {
   const navigate = useNavigate();
-  const { refresh } = useMaaSGovernanceContext();
-  const [confirmDelete, deleteDialog] = useDeleteSubscription(service, {
-    onDeleted: () => {
-      refresh();
-      navigate(returnTo, { state: { notice: 'Subscription deleted' } });
-    },
+  const [confirmDelete, deleteDialog] = useDeleteSubscription({
+    onDeleted: () => void navigate(returnTo, { state: { notice: 'Subscription deleted' } }),
   });
+  const deleting = isDeleting(subscription);
   return (
     <>
       <SimpleMenuActions
         toggleLabel="Actions"
         testId="subscription-actions-toggle"
-        ariaLabel={`Actions for ${subscription.displayName ?? subscription.name}`}
+        ariaLabel={`Actions for ${displayNameOf(subscription)}`}
         dropdownItems={[
           {
             key: 'edit',
             label: 'Edit',
-            onClick: () => navigate(getSubscriptionEditUrl(subscription.name), { state: { returnTo } }),
-            isDisabled: !!subscription.deletionTimestamp,
+            onClick: () => navigate(getSubscriptionEditUrl(subscription.id), { state: { returnTo } }),
+            isDisabled: deleting,
           },
           { isSpacer: true },
           {
@@ -52,7 +59,7 @@ const SubscriptionActions: React.FC<ActionsProps> = ({ service, subscription, re
             label: 'Delete',
             isDanger: true,
             onClick: () => confirmDelete(subscription),
-            isDisabled: !!subscription.deletionTimestamp,
+            isDisabled: deleting,
           },
         ]}
       />
@@ -61,35 +68,28 @@ const SubscriptionActions: React.FC<ActionsProps> = ({ service, subscription, re
   );
 };
 
-const viewModelRefSummaries = (info: SubscriptionInfoResponse): MaaSModelRefSummary[] =>
-  modelRefsToSummaries(
-    Array.isArray(info.subscription.modelRefs) ? info.subscription.modelRefs : [],
-    Array.isArray(info.modelRefs) ? info.modelRefs : [],
-  );
-
-type Props = { service: GovernanceService };
-
-export const ViewSubscriptionPage: React.FC<Props> = ({ service }) => {
+export const ViewSubscriptionPage: React.FC = () => {
   const { subscriptionName = '' } = useParams<{ subscriptionName: string }>();
   const location = useLocation();
-  const [subscriptionInfo, loaded, loadError, reload] = useGetSubscriptionInfo(service, subscriptionName);
-  const { canWrite, organizations } = useMaaSGovernanceContext();
-  const displaySubscriptionName = subscriptionInfo?.subscription.displayName?.trim() || subscriptionName;
+  const { data: info, loaded, error, refresh } = useSubscription(subscriptionName);
+  const { data: organizations } = useTenantList();
+  const { user } = useConsoleSession();
+  const canWrite = !!user?.isProviderAdmin;
+  const subscription = info?.object;
+  const title = subscription ? displayNameOf(subscription) : subscriptionName;
   const backUrl = getBackUrl(location.state, 'subscriptions');
-  const organizationId = subscriptionInfo?.subscription.tokenMetadata?.organizationId ?? '';
-  const organization = organizations.find((o) => o.id === organizationId)?.name ?? organizationId;
+  const organizationId = subscription ? organizationIdOf(subscription) : '';
+  const ready = readyConditionOf(subscription?.status?.conditions);
+  const tenant = organizations.find((o) => o.id === organizationId);
+  const organization = tenant ? tenantNameOf(tenant) : organizationId;
 
   return (
     <PageStateSection
-      title={displaySubscriptionName}
+      title={title}
       status={
-        subscriptionInfo && (
+        subscription && (
           <span data-testid="subscription-phase">
-            <PhaseLabel
-              phase={subscriptionInfo.subscription.phase}
-              statusMessage={subscriptionInfo.subscription.statusMessage}
-              reason={subscriptionInfo.subscription.reason}
-            />
+            <PhaseLabel phase={subscription.status?.phase} statusMessage={ready.statusMessage} reason={ready.reason} />
           </span>
         )
       }
@@ -100,38 +100,39 @@ export const ViewSubscriptionPage: React.FC<Props> = ({ service }) => {
               Subscriptions
             </Link>
           </BreadcrumbItem>
-          <BreadcrumbItem isActive>{displaySubscriptionName}</BreadcrumbItem>
+          <BreadcrumbItem isActive>{title}</BreadcrumbItem>
         </Breadcrumb>
       }
-      headerAction={
-        subscriptionInfo &&
-        canWrite && (
-          <SubscriptionActions service={service} subscription={subscriptionInfo.subscription} returnTo={backUrl} />
-        )
-      }
+      headerAction={subscription && canWrite && <SubscriptionActions subscription={subscription} returnTo={backUrl} />}
       loaded={loaded}
-      error={loadError}
-      onRetry={() => void reload()}
+      error={error}
+      onRetry={() => void refresh()}
       subject="Subscriptions"
       object="subscription"
       loadingLabel="Loading subscription"
       notFound={subscriptionNotFound(subscriptionName, backUrl)}
     >
-      {subscriptionInfo && (
+      {info && subscription && (
         <Flex
           direction={{ default: 'column' }}
           flexWrap={{ default: 'nowrap' }}
           spaceItems={{ default: 'spaceItemsXl' }}
         >
           <SubscriptionDetailsSection
-            subscription={subscriptionInfo.subscription}
-            authPolicies={Array.isArray(subscriptionInfo.authPolicies) ? subscriptionInfo.authPolicies : []}
+            subscription={subscription}
+            authPolicies={info.authPolicies}
             organization={organization}
           />
-          <SubscriptionGroupsSection groups={subscriptionInfo.subscription.owner.groups} />
+          <SubscriptionGroupsSection groups={groupsOf(subscription)} />
           <MaasModelsSection
-            modelRefSummaries={viewModelRefSummaries(subscriptionInfo)}
-            modelRefsWithRateLimits={subscriptionInfo.subscription.modelRefs}
+            rows={modelRefsOf(subscription).map((ref) => ({
+              key: refKey(ref),
+              title: refTitleOf(ref),
+              name: ref.name,
+              ...registrationStatusOf(info.modelRegistrations, ref),
+              tokenRateLimits: toTokenLimits(ref.tokenRateLimits),
+              unlimited: ref.unlimited,
+            }))}
           />
         </Flex>
       )}

@@ -2,12 +2,11 @@ import { useState } from 'react';
 import { Stack } from '@patternfly/react-core';
 import { ServiceError } from '../../api/ConsoleService';
 import type { ModelsService } from '../../api/models';
-import type { SubscriptionsService } from '../../api/subscriptions';
 import type { ManagedModel } from '../../api/types';
 import { DeleteModal } from '../../components/DeleteModal';
 import { ReferencingSubscriptions } from './ModelReferences';
 
-export type ModelDeleteService = ModelsService & Pick<SubscriptionsService, 'listSubscriptions'>;
+export type ModelDeleteService = ModelsService;
 
 const deleteErrorOf = (err: unknown) =>
   err instanceof ServiceError && err.isNotImplemented
@@ -86,7 +85,7 @@ export const useDeleteModel = (
           Delete this model, its saved deployment, and its location placement resources? Remove references from
           subscriptions and authorization policies first.
         </p>
-        <ReferencingSubscriptions service={service} model={selected} onInUse={setInUse} />
+        <ReferencingSubscriptions model={selected} onInUse={setInUse} />
       </Stack>
     </DeleteModal>
   );

@@ -3,6 +3,7 @@
 // packages/maas/frontend/src/app/pages/subscriptions/createSubscription/CreateSubscriptionForm.tsx
 // upstream commit: 8051fbbea117457b4da4074fb2856b732e6677a4
 // The console adds the Organization field: required on create, kept on edit. Telemetry is dropped.
+// It writes Subscriptions/Create and Update over Connect.
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -17,44 +18,65 @@ import {
   NumberInput,
   TextInput,
 } from '@patternfly/react-core';
+import { create, type MessageInitShape } from '@bufbuild/protobuf';
 import { z } from 'zod';
-import { ServiceError } from '../../../api/ConsoleService';
-import type { SubscriptionsService } from '../../../api/subscriptions';
-import type {
-  CreateSubscriptionRequest,
-  MaaSModelRefSummary,
-  SubscriptionInfoResponse,
-  UpdateSubscriptionRequest,
-} from '../../../api/types';
+import { describeError } from '../../../api/connect/errors';
 import { SYSTEM_AUTHENTICATED_GROUP } from '../../../api/types';
 import { AddModelsModal } from '../../../components/AddModelsModal';
 import { K8sNameDescriptionField } from '../../../components/K8sNameDescriptionField/K8sNameDescriptionField';
 import { isK8sNameDescriptionDataValid } from '../../../components/K8sNameDescriptionField/nameField';
 import { useK8sNameDescriptionFieldData } from '../../../components/K8sNameDescriptionField/useK8sNameDescriptionFieldData';
-import { MaasModelsSection } from '../../../components/MaasModelsSection';
+import { MaasModelsSection, type SubscriptionModelRow } from '../../../components/MaasModelsSection';
 import type { SelectionOptions } from '../../../components/MultiSelection';
 import { MultiSelection } from '../../../components/MultiSelection';
 import { SystemAuthenticatedWarning } from '../../../components/SystemAuthenticatedWarning';
 import { TypeaheadSelect } from '../../../components/TypeaheadSelect';
-import { useMaaSGovernanceContext } from '../../../context/useMaaSGovernanceContext';
+import type { Model } from '../../../gen/ai_grid/v1/model_type_pb';
+import {
+  SubscriptionModelRefSchema,
+  type SubscriptionModelRef,
+  SubscriptionSpecSchema,
+} from '../../../gen/ai_grid/v1/subscription_type_pb';
+import type { SubscriptionsGetResponse } from '../../../gen/ai_grid/v1/subscriptions_service_pb';
 import { useConfirmDiscard } from '../../../hooks/useConfirmDiscard';
-import type { SubscriptionModelEntry } from '../hooks/useSubscriptionModels';
-import { useSubscriptionModels } from '../hooks/useSubscriptionModels';
-import { isSameModel } from '../../../utilities/authpolicies';
 import { getSectionUrl } from '../../../utilities/maasGovernanceNavigation';
 import { fieldErrorsOf } from '../../../validation';
+import type { SubscriptionModelEntry } from '../hooks/useSubscriptionModels';
+import { entryKey, useSubscriptionModels } from '../hooks/useSubscriptionModels';
+import {
+  ANNOTATION_DESCRIPTION,
+  ANNOTATION_DISPLAY_NAME,
+  descriptionOf,
+  displayNameOf,
+  groupsOf,
+  modelForRef,
+  modelPhaseOf,
+  modelRefsOf,
+  organizationIdOf,
+  refTitleOf,
+  registrationStatusOf,
+  tenantNameOf,
+  toTokenLimits,
+} from '../subscriptionText';
+import { useSubscriptionWrites, useTenantList } from '../useSubscriptions';
 import { EditRateLimitsModal } from './EditRateLimitsModal';
 
 type Props = {
-  service: SubscriptionsService;
-  modelRefs: MaaSModelRefSummary[];
-  subscriptionInfo?: SubscriptionInfoResponse;
+  /** The models the subscription may name, from Models/List. */
+  models: Model[];
+  /** The subscription being edited, as Subscriptions/Get answered it; none on create. */
+  subscriptionInfo?: SubscriptionsGetResponse;
   returnTo?: string;
 };
 
 const MAX_PRIORITY = 1000000;
 const MIN_PRIORITY = -1000000;
 const SELECT_ORGANIZATION = 'Select an organization';
+/**
+ * The longest subscription id the backend takes: 63 less the managed policy's "-policy" suffix
+ * (maxSubscriptionIDLen, internal/servers/subscription_mapper.go).
+ */
+const MAX_ID_LENGTH = 56;
 
 const subscriptionFormSchema = z.object({
   priority: z
@@ -66,17 +88,29 @@ const subscriptionFormSchema = z.object({
   models: z.array(z.unknown()).min(1, 'One or more models must be added'),
 });
 
-const buildInitialModels = (info: SubscriptionInfoResponse): SubscriptionModelEntry[] =>
-  info.subscription.modelRefs.map((ref) => ({
-    modelRefSummary: info.modelRefs.find((s) => isSameModel(s, ref)) ?? {
-      name: ref.name,
-      namespace: ref.namespace,
-      modelRef: { kind: '', name: '' },
-      notFound: true,
-    },
-    tokenRateLimits: ref.tokenRateLimits,
+const buildInitialModels = (info: SubscriptionsGetResponse, models: Model[]): SubscriptionModelEntry[] =>
+  (info.object ? modelRefsOf(info.object) : []).map((ref) => ({
+    ref,
+    model: modelForRef(models, ref),
+    saved: true,
     unlimited: ref.unlimited,
+    tokenRateLimits: toTokenLimits(ref.tokenRateLimits),
   }));
+
+/**
+ * The ref the form writes: the loaded ref's own fields (its namespace, billing rate and guardrails)
+ * with the limits set here. The output-only display_name, description and model_id are left out:
+ * the backend ignores them on write.
+ */
+const refPayload = (entry: SubscriptionModelEntry): SubscriptionModelRef =>
+  create(SubscriptionModelRefSchema, {
+    name: entry.ref.name,
+    namespace: entry.ref.namespace,
+    billingRate: entry.ref.billingRate,
+    guardrails: entry.ref.guardrails,
+    unlimited: entry.unlimited,
+    tokenRateLimits: entry.tokenRateLimits.map(({ limit, window }) => ({ limit: BigInt(limit), window })),
+  });
 
 const errorText = (message: string) => (
   <FormHelperText>
@@ -86,41 +120,41 @@ const errorText = (message: string) => (
   </FormHelperText>
 );
 
-export const CreateSubscriptionForm: React.FC<Props> = ({ service, modelRefs, subscriptionInfo, returnTo }) => {
+export const CreateSubscriptionForm: React.FC<Props> = ({ models: availableModels, subscriptionInfo, returnTo }) => {
   const navigate = useNavigate();
-  const { refresh, organizations, organizationsError } = useMaaSGovernanceContext();
-  const isEditing = !!subscriptionInfo;
-  const subscription = subscriptionInfo?.subscription;
+  const { data: organizations, error: organizationsError } = useTenantList();
+  const { createSubscription, updateSubscription } = useSubscriptionWrites();
+  const isEditing = !!subscriptionInfo?.object;
+  const subscription = subscriptionInfo?.object;
 
   const { data: nameDescData, onDataChange: onNameDescChange } = useK8sNameDescriptionFieldData(
     subscription
       ? {
           initialData: {
-            name: subscription.displayName ?? subscription.name,
-            k8sName: subscription.name,
-            description: subscription.description ?? '',
+            name: displayNameOf(subscription),
+            k8sName: subscription.id,
+            description: descriptionOf(subscription),
           },
         }
-      : undefined,
+      : { maxLength: MAX_ID_LENGTH },
   );
 
   const [selectedGroups, setSelectedGroups] = useState<SelectionOptions[]>(() =>
-    (subscription?.owner.groups ?? []).map(({ name }) => ({ id: name, name, selected: true })),
+    (subscription ? groupsOf(subscription) : []).map((name) => ({ id: name, name, selected: true })),
   );
   const [groupsTouched, setGroupsTouched] = useState(false);
   const [modelsTouched, setModelsTouched] = useState(false);
-  const [organizationId, setOrganizationId] = useState(subscription?.tokenMetadata?.organizationId ?? '');
-  // A subscription saved before Organization was required opens with Save disabled, so it says
-  // why straight away instead of waiting for the field to be touched.
+  const savedOrganizationId = subscription ? organizationIdOf(subscription) : '';
+  const [organizationId, setOrganizationId] = useState(savedOrganizationId);
+  // A subscription saved without an organization opens with Save disabled, so it says why straight
+  // away instead of waiting for the field to be touched.
   const [organizationTouched, setOrganizationTouched] = useState(!!subscription && !organizationId);
-  const [priority, setPriority] = useState<number | undefined>(subscription?.priority ?? 0);
-  // Every subscription created here gets a matching authorization policy, as in the PoC.
-  const createAuthPolicy = true;
+  const [priority, setPriority] = useState<number | undefined>(subscription?.spec?.priority ?? 0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const [initialModels] = useState<SubscriptionModelEntry[]>(() =>
-    subscriptionInfo ? buildInitialModels(subscriptionInfo) : [],
+    subscriptionInfo ? buildInitialModels(subscriptionInfo, availableModels) : [],
   );
 
   const {
@@ -133,7 +167,7 @@ export const CreateSubscriptionForm: React.FC<Props> = ({ service, modelRefs, su
     allModelsHaveRateLimits,
     handleAddModels,
     handleRemoveModel,
-    handleRemoveModelsByRef,
+    handleRemoveModels,
     handleSaveRateLimits,
     handleCloseRateLimitsModal,
   } = useSubscriptionModels(initialModels);
@@ -141,18 +175,13 @@ export const CreateSubscriptionForm: React.FC<Props> = ({ service, modelRefs, su
   const isNameValid = isK8sNameDescriptionDataValid(nameDescData);
   const selectedGroupNames = selectedGroups.filter((g) => g.selected).map((g) => String(g.id));
 
-  const initialGroupNames = useMemo(
-    () => new Set(subscription ? subscription.owner.groups.map((g) => g.name) : []),
-    [subscription],
-  );
-  const initialModelRefs = useMemo(() => subscription?.modelRefs ?? [], [subscription]);
+  const initialGroupNames = useMemo(() => new Set(subscription ? groupsOf(subscription) : []), [subscription]);
+  const initialModelKeys = useMemo(() => new Set(initialModels.map(entryKey)), [initialModels]);
   const groupsChanged =
     isEditing &&
     (selectedGroupNames.length !== initialGroupNames.size || selectedGroupNames.some((g) => !initialGroupNames.has(g)));
   const modelsChanged =
-    isEditing &&
-    (models.length !== initialModelRefs.length ||
-      models.some((m) => !initialModelRefs.some((ref) => isSameModel(ref, m.modelRefSummary))));
+    isEditing && (models.length !== initialModelKeys.size || models.some((m) => !initialModelKeys.has(entryKey(m))));
   const showPolicyWarning = isEditing && (groupsChanged || modelsChanged);
 
   const fieldErrors = fieldErrorsOf(subscriptionFormSchema, {
@@ -161,9 +190,9 @@ export const CreateSubscriptionForm: React.FC<Props> = ({ service, modelRefs, su
     models,
   });
   const isPriorityValid = priority != null && !Number.isNaN(priority);
-  // Required on create and edit. The planned API makes it immutable once set, so the edit form
-  // shows a set organization read-only.
-  const organizationLocked = !!subscription?.tokenMetadata?.organizationId;
+  // Required on create and edit, and immutable once set (validateOrganizationImmutable in the
+  // backend's internal/servers/subscriptions_server.go), so the edit form shows a set one read-only.
+  const organizationLocked = !!savedOrganizationId;
   const organizationMissing = !organizationId;
 
   // What the user can change, so Cancel asks before discarding it and an unchanged edit can't be saved
@@ -175,7 +204,7 @@ export const CreateSubscriptionForm: React.FC<Props> = ({ service, modelRefs, su
     groups: selectedGroupNames,
     organizationId,
     priority: priority == null || Number.isNaN(priority) ? null : priority,
-    models: models.map((m) => [m.modelRefSummary.namespace, m.modelRefSummary.name, m.tokenRateLimits, m.unlimited]),
+    models: models.map((m) => [entryKey(m), m.tokenRateLimits, m.unlimited]),
   });
   const [initialValues] = useState(formValues);
   const isDirty = formValues !== initialValues;
@@ -191,30 +220,36 @@ export const CreateSubscriptionForm: React.FC<Props> = ({ service, modelRefs, su
     !organizationMissing &&
     !isSubmitting;
 
-  // Each reference names its model's namespace (P6), so a model of the same name elsewhere isn't it.
-  const modelRefsPayload = models.map((m) => {
-    const ref = {
-      ...subscription?.modelRefs.find((r) => isSameModel(r, m.modelRefSummary)),
-      name: m.modelRefSummary.name,
-      tokenRateLimits: m.tokenRateLimits,
-      unlimited: m.unlimited,
-    };
-    const namespace = m.modelRefSummary.namespace ?? ref.namespace;
-    return namespace ? { ...ref, namespace } : ref;
-  });
-
   // The organization select lists the organizations by name; an edited subscription keeps its
   // organization even when the backend no longer lists it.
   const organizationOptions = useMemo(() => {
-    const options = [...organizations]
-      .sort((a, b) => a.name.localeCompare(b.name))
-      .map((o) => ({ value: o.id, label: o.name }));
-    const current = subscription?.tokenMetadata?.organizationId;
-    if (current && !options.some((o) => o.value === current)) {
-      options.push({ value: current, label: current });
+    const options = organizations
+      .map((o) => ({ value: o.id, label: tenantNameOf(o) }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+    if (savedOrganizationId && !options.some((o) => o.value === savedOrganizationId)) {
+      options.push({ value: savedOrganizationId, label: savedOrganizationId });
     }
     return options;
-  }, [organizations, subscription]);
+  }, [organizations, savedOrganizationId]);
+
+  /**
+   * The annotations to write: on an edit the whole map as loaded (an Update replaces the map), with
+   * the display name and description set, or dropped when cleared. An unchanged name keeps the
+   * annotation as it was.
+   */
+  const annotationsPayload = (): Record<string, string> => {
+    const annotations = { ...(subscription?.metadata?.annotations ?? {}) };
+    const set = (key: string, value: string) => {
+      if (value) annotations[key] = value;
+      else delete annotations[key];
+    };
+    const name = nameDescData.name.trim();
+    if (!subscription || name !== displayNameOf(subscription)) {
+      set(ANNOTATION_DISPLAY_NAME, name);
+    }
+    set(ANNOTATION_DESCRIPTION, nameDescData.description.trim());
+    return annotations;
+  };
 
   const handleSubmit = async () => {
     if (priority == null || Number.isNaN(priority)) {
@@ -222,56 +257,70 @@ export const CreateSubscriptionForm: React.FC<Props> = ({ service, modelRefs, su
     }
     setIsSubmitting(true);
     setSubmitError(null);
+    // The whole spec: what the form edits, and as loaded what it doesn't (users, token metadata,
+    // inference priority, guardrails), since the mask names spec as a whole.
+    const loaded = subscription?.spec;
+    const spec: MessageInitShape<typeof SubscriptionSpecSchema> = {
+      owner: { groups: selectedGroupNames, users: loaded?.owner?.users ?? [] },
+      modelRefs: models.map(refPayload),
+      priority,
+      organization: { id: organizationId },
+      tokenMetadata: loaded?.tokenMetadata,
+      inferencePriority: loaded?.inferencePriority,
+      guardrails: loaded?.guardrails ?? [],
+    };
     try {
-      if (isEditing && subscription) {
-        const trimmedName = nameDescData.name.trim();
-        const originalName = subscription.displayName ?? subscription.name;
-        const request: UpdateSubscriptionRequest = {
-          displayName: trimmedName !== originalName ? trimmedName || undefined : subscription.displayName,
-          description: nameDescData.description.trim() || undefined,
-          owner: { ...subscription.owner, groups: selectedGroupNames.map((g) => ({ name: g })) },
-          modelRefs: modelRefsPayload,
-          tokenMetadata: organizationId
-            ? { ...subscription.tokenMetadata, organizationId }
-            : subscription.tokenMetadata,
-          inferencePriority: subscription.inferencePriority,
-          guardrails: subscription.guardrails,
-          priority,
-        };
-        await service.updateSubscription(subscription.name, request, subscription.resourceVersion);
+      if (subscription) {
+        await updateSubscription.mutateAsync({
+          object: {
+            id: subscription.id,
+            metadata: { annotations: annotationsPayload(), version: subscription.metadata?.version ?? 0 },
+            spec,
+          },
+          updateMask: { paths: ['spec', 'metadata.annotations'] },
+          // The backend answers Aborted when the subscription changed since it was read.
+          lock: true,
+        });
       } else {
-        const request: CreateSubscriptionRequest = {
-          name: nameDescData.k8sName.value,
-          displayName: nameDescData.name.trim() || undefined,
-          description: nameDescData.description.trim() || undefined,
-          owner: { groups: selectedGroupNames.map((g) => ({ name: g })) },
-          modelRefs: modelRefsPayload,
-          priority,
-          tokenMetadata: { organizationId },
-          createAuthPolicy,
-        };
-        await service.createSubscription(request);
+        const id = nameDescData.k8sName.value;
+        // The backend creates the managed authorization policy, <id>-policy, with it.
+        await createSubscription.mutateAsync({
+          object: { id, metadata: { name: id, annotations: annotationsPayload() }, spec },
+        });
       }
-      refresh();
       // A created subscription replaces its create form in history, so Back doesn't land on it, empty.
       navigate(returnTo ?? getSectionUrl('subscriptions'), {
         replace: !isEditing,
         state: { notice: isEditing ? 'Subscription updated' : 'Subscription created' },
       });
     } catch (e) {
+      const error = describeError(e);
       setSubmitError(
-        e instanceof ServiceError && e.isNotImplemented
+        error.kind === 'notAvailable'
           ? `${isEditing ? 'Saving' : 'Creating'} subscriptions is not available on this backend yet.`
-          : e instanceof Error
-            ? e.message
-            : `Failed to ${isEditing ? 'update' : 'create'} subscription`,
+          : error.message,
       );
       setIsSubmitting(false);
     }
   };
 
-  const showNoModelsWarning = !isEditing && modelRefs.length === 0 && models.length === 0;
-  const canAddModels = modelRefs.length > 0;
+  const showNoModelsWarning = !isEditing && availableModels.length === 0 && models.length === 0;
+  const canAddModels = availableModels.length > 0;
+
+  const rows: SubscriptionModelRow[] = models.map((entry) => {
+    const status =
+      entry.saved && subscriptionInfo
+        ? registrationStatusOf(subscriptionInfo.modelRegistrations, entry.ref)
+        : { status: entry.model ? modelPhaseOf(entry.model) : 'Unknown', reason: entry.model?.status?.message };
+    return {
+      key: entryKey(entry),
+      title: refTitleOf(entry.ref, entry.model),
+      name: entry.ref.name,
+      ...status,
+      tokenRateLimits: entry.tokenRateLimits,
+      unlimited: entry.unlimited,
+    };
+  });
 
   let organizationHelper = (
     <FormHelperText>
@@ -398,13 +447,7 @@ export const CreateSubscriptionForm: React.FC<Props> = ({ service, modelRefs, su
           </Alert>
         ) : (
           <MaasModelsSection
-            modelRefSummaries={models.map((m) => m.modelRefSummary)}
-            modelRefsWithRateLimits={models.map((m) => ({
-              name: m.modelRefSummary.name,
-              namespace: m.modelRefSummary.namespace,
-              tokenRateLimits: m.tokenRateLimits,
-              unlimited: m.unlimited,
-            }))}
+            rows={rows}
             editable
             onAddModels={canAddModels ? () => setIsAddModelsModalOpen(true) : undefined}
             onEditLimits={(index) => setEditLimitsTarget(index)}
@@ -418,15 +461,15 @@ export const CreateSubscriptionForm: React.FC<Props> = ({ service, modelRefs, su
 
         {isAddModelsModalOpen && canAddModels && (
           <AddModelsModal
-            availableModelRefs={modelRefs}
+            availableModels={availableModels}
             currentModels={models}
-            onAdd={(refs) => {
+            onAdd={(added) => {
               setModelsTouched(true);
-              handleAddModels(refs);
+              handleAddModels(added);
             }}
-            onRemove={(refs) => {
+            onRemove={(removed) => {
               setModelsTouched(true);
-              handleRemoveModelsByRef(refs);
+              handleRemoveModels(removed);
             }}
             onClose={() => setIsAddModelsModalOpen(false)}
           />
@@ -434,7 +477,7 @@ export const CreateSubscriptionForm: React.FC<Props> = ({ service, modelRefs, su
 
         {editLimitsTarget != null && editingModel && (
           <EditRateLimitsModal
-            modelName={editingModel.modelRefSummary.displayName ?? editingModel.modelRefSummary.name}
+            modelName={refTitleOf(editingModel.ref, editingModel.model)}
             rateLimits={editingModel.tokenRateLimits}
             onSave={handleSaveRateLimits}
             onClose={handleCloseRateLimitsModal}

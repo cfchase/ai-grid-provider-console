@@ -7,7 +7,8 @@
 // groups or models can expand under it.
 import { useMemo, useState } from 'react';
 import { Table, Tbody, Th, Thead, Tr } from '@patternfly/react-table';
-import type { MaaSSubscription, ManagedModel } from '../../../api/types';
+import type { Model } from '../../../gen/ai_grid/v1/model_type_pb';
+import type { Subscription } from '../../../gen/ai_grid/v1/subscription_type_pb';
 import { PaginatedTable } from '../../../components/PaginatedTable';
 import { TableEmptyRow } from '../../../components/TableEmptyRow';
 import { subscriptionsColumns } from './columns';
@@ -15,18 +16,18 @@ import type { ModelsState } from './ExpandedModelsPanel';
 import { SubscriptionTableRow } from './SubscriptionTableRow';
 
 type Props = {
-  subscriptions: MaaSSubscription[];
+  subscriptions: Subscription[];
   /** A subscription's organization name, or its id when the organization is unknown. */
-  organizationName: (subscription: MaaSSubscription) => string;
-  /** The hub's models, for the rows' models expansion, and whether they have loaded. */
-  models: ManagedModel[];
+  organizationName: (subscription: Subscription) => string;
+  /** The models, for the rows' models expansion, and whether they have loaded. */
+  models: Model[];
   modelsState: ModelsState;
   /** Each location's site name, from the clusters. */
   siteNames: Map<string, string>;
   toolbarContent: React.ReactNode;
   onClearFilters: () => void;
   canWrite: boolean;
-  onDelete: (subscription: MaaSSubscription) => void;
+  onDelete: (subscription: Subscription) => void;
 };
 
 export const SubscriptionsTable: React.FC<Props> = ({
@@ -75,7 +76,7 @@ export const SubscriptionsTable: React.FC<Props> = ({
             {sorted.length ? (
               pageRows.map((subscription) => (
                 <SubscriptionTableRow
-                  key={subscription.name}
+                  key={subscription.id}
                   subscription={subscription}
                   columns={columns}
                   organization={organizationName(subscription)}
