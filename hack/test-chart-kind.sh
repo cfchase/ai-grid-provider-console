@@ -38,7 +38,7 @@ PORT="${LOCAL_PORT:-18443}"
 # The proxy has no version tag newer than August, so it is latest as of 2026-10-27 (built
 # 2026-10-16 from opendatahub-io/kube-auth-proxy b2d77d8). busybox runs netstat for step 2.
 BACKEND_PIN="$(cat "${ROOT}/.backend-api-version")"
-BACKEND_IMAGE="${BACKEND_IMAGE:-ghcr.io/ai-grid-cloud/ai-grid-provider-backend:sha-71bb8cc526a342b1554a6a36617d58ea42954281@sha256:a6bef1c62bb3c6a7cd8eab1ddfdb2a11a74b9239efe7503907d0ec70b3bc328d}"
+BACKEND_IMAGE="${BACKEND_IMAGE:-ghcr.io/ai-grid-cloud/ai-grid-provider-backend:sha-3deed95ebfd1a92b177863bfbb3659e18881e117@sha256:9ab357ce95bbda733ae8471904e0d59b371418ee852afdc39146cea566e61106}"
 PROXY_IMAGE="${PROXY_IMAGE:-quay.io/opendatahub/odh-kube-auth-proxy@sha256:1a5f6e220362aa2077026bb7e3091c38f80aac861fa060b08045e58e783d5bc5}"
 BUSYBOX_IMAGE=docker.io/library/busybox:1.36@sha256:73aaf090f3d85aa34ee199857f03fa3a95c8ede2ffd4cc2cdb5b94e566b11662
 ROUTE_CRD=https://raw.githubusercontent.com/openshift/api/a9b3f04dd8db4c20aacca607afeff8ddbc25d863/route/v1/zz_generated.crd-manifests/routes.crd.yaml
