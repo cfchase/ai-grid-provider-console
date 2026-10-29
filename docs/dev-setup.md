@@ -247,7 +247,7 @@ after it merges.
 The BFF imports `bff/gen/ai_grid/v1`, generated from the console's draft proto in
 `mock/proto/ai_grid/v1` (the console's proposal, which the fake backend serves; see
 `mock/proto/README.md`), and `bff/gen/ai_grid/backend/v1`, generated from its copy of the real
-backend's Clusters, Tenants, Subscriptions and Models messages in `mock/proto/ai_grid/backend/v1`. After editing a
+backend's Clusters, Tenants and Models messages in `mock/proto/ai_grid/backend/v1`. After editing a
 `.proto` file:
 
 ```sh

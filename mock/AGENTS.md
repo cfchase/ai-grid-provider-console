@@ -16,8 +16,9 @@
 > so the other pages keep working meanwhile. Console cleanup remains pending and removes
 > the draft proto, generated draft code and `bff/internal/fakebackend` from here. Models
 > and Subscriptions have already moved to real backend services (the backend's
-> `internal/servers/models_git.go` and `subscriptions_git.go`); the console uses them through the
-> existing BFF adapters. The
+> `internal/servers/models_git.go` and `subscriptions_git.go`). The Subscriptions pages call the
+> backend over Connect (`docs/connect.md`), so this fake serves no subscriptions; Models still go
+> through the BFF's adapters. The
 > vendored upstream proto and drift guard remain during migration.
 
 Monitoring uses the hub's Perses dashboards when configured. Its fallback page uses the
@@ -65,7 +66,7 @@ curl -s -H 'x-forwarded-access-token: dev-token' -H 'x-forwarded-user: dev-user'
 ```
 
 The browser tests (`make e2e`) start the same fake on `fixtures-poc/` instead (the PoC's four
-sites, three models, three organizations and three subscriptions, no scenario events, no latency),
+sites, three models and three organizations, no scenario events, no latency),
 from `frontend/playwright.config.ts`. To run the pieces separately, see
 `docs/dev-setup.md`, "Run the pieces separately".
 
@@ -118,11 +119,6 @@ adds `"meta": {"size", "total", "offset", "limit"}` (`limit` only when the reque
 | DELETE | `/api/v1/models/{namespace}/{name}` | | 204 |
 | GET | `/api/v1/capabilities` | | `{manifestWorkReplicaSetEnabled, observabilityInstalled, acmVersion}` |
 | GET | `/api/v1/locations` | | `string[]`: the names of the provisioned, Available AI Grid members with role inference or combined, sorted, as the backend's `Models/ListPlacementClusters` answers; the wizard places a model with `name In [...]` over them |
-| GET | `/api/v1/subscriptions` | | `Subscription[]` by name |
-| GET | `/api/v1/subscriptions/{name}` | | `{subscription, modelRefs, authPolicies, meteringMetadata?, modelRegistrations}` |
-| POST | `/api/v1/subscriptions` | `{name, displayName?, description?, priority, owner, modelRefs, tokenMetadata?, inferencePriority?, guardrails?, createAuthPolicy?}` | 201, `{subscription, authPolicy?}`, `Location` header |
-| PUT | `/api/v1/subscriptions/{name}` | the POST body without `name` and `createAuthPolicy` | `{subscription}` after the write |
-| DELETE | `/api/v1/subscriptions/{name}` | | 204 |
 | GET | `/api/v1/grid/overview?range=&site=&metrics=false` | | `{clusters, metrics, metricsSource?, inventorySource?, demo, updatedAt?}` |
 
 Request bodies must be sent with `Content-Type: application/json` (charset allowed), or the
@@ -159,8 +155,7 @@ before any call. The fake decides what an update changes: one that leaves the ob
 `resourceVersion`, like the API server.
 
 Stale tabs (`ETag`, `If-Match`). `GET` of one cluster, tenant or model and the answer to its
-POST or PATCH carry `ETag: "<resourceVersion>"`, as do `GET` of one subscription and the answer
-to its PUT. Every PATCH, PUT and DELETE must send it back as `If-Match`: a write against an object
+POST or PATCH carry `ETag: "<resourceVersion>"`. Every PATCH, PUT and DELETE must send it back as `If-Match`: a write against an object
 that changed since is 409 (the backend's `Aborted`) instead of overwriting it, and a PATCH, PUT
 or DELETE without `If-Match` (or with `If-Match: *`, which names no version) is 428 before
 anything is called. The BFF checks a write in this order: 415 for a body that is not JSON, 428,
@@ -185,15 +180,10 @@ when the BFF set them.
 | `get-models.json` | `GET /api/v1/models`, all five models with `meta` |
 | `get-model.json` | `GET /api/v1/models/ai-grid-models/mistral-7b-instruct`, a placed model selected for two sites at the start of its rollout: the first work applied, not yet available |
 | `get-capabilities.json` | `GET /api/v1/capabilities` |
-| `get-subscriptions.json` | `GET /api/v1/subscriptions`, all four subscriptions |
-| `get-subscription.json` | `GET /api/v1/subscriptions/engineering`: the subscription, its models, policies and registrations |
 | `get-grid-overview.json` | `GET /api/v1/grid/overview?range=1h`, the members with the demo metrics |
 | `get-locations.json` | `GET /api/v1/locations`: the fake's answer, `location` label values; the real backend answers cluster names (`bff/internal/backend/v1_models.go`) |
 | `post-tenant.json` | `POST /api/v1/tenants`: 201 with `Location` and `ETag` |
 | `post-model.json` | `POST /api/v1/models`, an unplaced CPU model: 201 with `Location` and `ETag` |
-| `post-subscription.json` | `POST /api/v1/subscriptions` with `createAuthPolicy`: 201 with `Location`, the subscription and its policy |
-| `put-subscription.json` | `PUT /api/v1/subscriptions/onboarding` with its `If-Match`: 200 and the new `ETag` |
-| `delete-subscription.json` | `DELETE /api/v1/subscriptions/onboarding` with its `If-Match`: 204, no body |
 | `error-401-expired-token.json` | `GET /api/v1/user` with `expired-token` |
 | `error-403-viewer-patch.json` | `PATCH /api/v1/tenants/{id}` with `viewer-token` and the tenant's `If-Match` |
 | `error-404-unknown-tenant.json` | `GET /api/v1/tenants/unknown-tenant` |
@@ -344,9 +334,10 @@ The fake answers `Unimplemented` for exactly the methods in `intentionallyUnimpl
 disagree ([proto/README.md](proto/README.md) explains the allowlist). Today:
 `AiGrid/GetCurrentUser` (the BFF derives `isProviderAdmin` from a hub access review instead),
 `Grid/GetNetwork`, and every method of `CatalogItems`. They are placeholders until the shapes
-are agreed with the backend team; the BFF has no endpoint for them yet. `Subscriptions` and
-`Grid/GetOverview` are implemented (`/api/v1/subscriptions`, `/api/v1/grid/overview`); their
-proto is a proposal for the backend owners (`proto/README.md`, "Proposals from the port").
+are agreed with the backend team; the BFF has no endpoint for them yet. `Grid/GetOverview` is
+implemented (`/api/v1/grid/overview`); its proto is a proposal for the backend owners
+(`proto/README.md`, "Proposals from the port"). The draft has no `Subscriptions` service any more:
+the console reads the backend's own.
 
 ## Rules
 

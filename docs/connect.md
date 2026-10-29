@@ -7,8 +7,9 @@ how a call travels, where the types come from, how a page uses them, how to test
 when the API has to change. The backend's side of the same rules is its
 `docs/API_CONTRACT.md`.
 
-The Clusters area (the list, a cluster's page, Add and Remove) and the AI Grid map are on it; the
-other areas move one at a time (Organizations, then Models and Subscriptions); each move deletes that area's draft RPCs, fake data,
+The Clusters area (the list, a cluster's page, Add and Remove), the AI Grid map and the
+Subscriptions area are on it; the other areas move one at a time (Organizations, then Models);
+each move deletes that area's draft RPCs, fake data,
 BFF handlers and hand-written frontend types. When the last one moves, `mock/proto`, `bff/gen`, the
 console's fake backend and `frontend/src/api`'s hand-written layer go.
 
@@ -146,6 +147,72 @@ regression passing when updating these dependencies.
 Still worded in the page, and backend asks if another client needs them: a provisioning enum
 instead of the Policy's compliance string, and typed `openshift_version`, `console_url`,
 `platform` and `product`.
+
+### The Subscriptions area
+
+- **Reads.** `useSubscriptionList`, `useSubscription`, `useModelList` and `useTenantList`
+  (`frontend/src/pages/subscriptions/useSubscriptions.ts`) call `Subscriptions/List` and `Get`,
+  `Models/List` (the model picker, the models' names and locations) and `Tenants/List` (the
+  organization select and the organizations' names). The lists poll every 30 s; a
+  subscription's page and its edit form load `Get` once, so the form keeps what it opened with.
+  `subscriptionText.ts` is the selector layer: the display name and description are the
+  `openshift.io/display-name` and `openshift.io/description` annotations, the organization is
+  `spec.organization.id`, the status is `status.phase` (Active or Pending in git mode, none until
+  a cluster reports, which reads Unknown) with its Ready condition's message in the tooltip, and
+  a referenced model's status is its `model_registrations` entry (its phase; Saved to Git for one
+  with no phase and a Ready condition of reason `SavedToGit`; Not found without an entry).
+- **The model join.** A ref names its Model by `SubscriptionModelRef.model_id`, which the
+  backend fills (with `display_name` and `description`) for a ref to a model in its catalog; a
+  ref it can't join has no model and shows its name. A model the form adds is sent with the
+  model's id as `name` and no `namespace`, as the field's comment says. The Models page's delete
+  dialog lists the subscriptions that use a model with the CEL filter
+  `this.spec.model_refs.exists(r, r.model_id == "<id>")`. The console needs no models namespace for
+  this.
+- **Writes.** Create sends `id`, the annotations, and the spec (bare owner groups, the
+  organization, priority, model refs with their token limits); the backend creates the managed
+  `<id>-policy` with it. Update sends the whole spec, with the fields the form doesn't edit
+  (users, token metadata, inference priority, guardrails, a ref's billing rate and guardrails)
+  as loaded, and the whole annotations map it loaded with the display name and description
+  changed, because an Update replaces a map whole: mask `spec` and `metadata.annotations`,
+  `metadata.version` with `lock: true`. Delete sends `resource_version` = the version read (zero
+  would skip the check). Aborted is the conflict the form and the delete dialog already show.
+- **Testing.** Page tests answer from `frontend/src/__tests__/connectSubscriptions.ts`, an
+  in-memory Subscriptions service over the generated messages that answers as git mode does,
+  with Models/List and Tenants/List over the test's `MockConsoleService`; the browser test
+  (`e2e/subscriptions.spec.ts`) runs on the backend's fakes and commits a model of its own first.
+
+### The Subscriptions area
+
+- **Reads.** `useSubscriptionList`, `useSubscription`, `useModelList` and `useTenantList`
+  (`frontend/src/pages/subscriptions/useSubscriptions.ts`) call `Subscriptions/List` and `Get`,
+  `Models/List` (the model picker, the models' names and locations) and `Tenants/List` (the
+  organization select and the organizations' names). The lists poll every 30 s; a
+  subscription's page and its edit form load `Get` once, so the form keeps what it opened with.
+  `subscriptionText.ts` is the selector layer: the display name and description are the
+  `openshift.io/display-name` and `openshift.io/description` annotations, the organization is
+  `spec.organization.id`, the status is `status.phase` (Active or Pending in git mode, none until
+  a cluster reports, which reads Unknown) with its Ready condition's message in the tooltip, and
+  a referenced model's status is its `model_registrations` entry (its phase; Saved to Git for one
+  with no phase and a Ready condition of reason `SavedToGit`; Not found without an entry).
+- **The model join.** A ref names its Model by `SubscriptionModelRef.model_id`, which the
+  backend fills (with `display_name` and `description`) for a ref to a model in its catalog; a
+  ref it can't join has no model and shows its name. A model the form adds is sent with the
+  model's id as `name` and no `namespace`, as the field's comment says. The Models page's delete
+  dialog lists the subscriptions that use a model with the CEL filter
+  `this.spec.model_refs.exists(r, r.model_id == "<id>")`. The console needs no models namespace for
+  this.
+- **Writes.** Create sends `id`, the annotations, and the spec (bare owner groups, the
+  organization, priority, model refs with their token limits); the backend creates the managed
+  `<id>-policy` with it. Update sends the whole spec, with the fields the form doesn't edit
+  (users, token metadata, inference priority, guardrails, a ref's billing rate and guardrails)
+  as loaded, and the whole annotations map it loaded with the display name and description
+  changed, because an Update replaces a map whole: mask `spec` and `metadata.annotations`,
+  `metadata.version` with `lock: true`. Delete sends `resource_version` = the version read (zero
+  would skip the check). Aborted is the conflict the form and the delete dialog already show.
+- **Testing.** Page tests answer from `frontend/src/__tests__/connectSubscriptions.ts`, an
+  in-memory Subscriptions service over the generated messages that answers as git mode does,
+  with Models/List and Tenants/List over the test's `MockConsoleService`; the browser test
+  (`e2e/subscriptions.spec.ts`) runs on the backend's fakes and commits a model of its own first.
 
 ### Perses on Query v5
 

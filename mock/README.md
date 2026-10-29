@@ -35,7 +35,7 @@ documentation, from the POC, or from the backend's own conventions. The sources 
    no longer matches that copy. `TestFakeImplementsEveryProtoMethod` calls every method of the
    draft over an in-memory connection and fails on any that answers `Unimplemented`, except
    the deliberate stubs listed with a reason in `intentionallyUnimplemented` (today
-   `GetCurrentUser` and the `Grid`, `CatalogItems` and `Subscriptions` services), so the fake
+   `GetCurrentUser` and the `Grid` and `CatalogItems` services), so the fake
    can never silently fall behind the proto. It guards against stubs, not behaviour; the
    per-area tests cover behaviour. `proto/README.md` has the details.
 2. **Mirror the real objects, not the POC's inventions.** ACM `ManagedCluster`, `Placement`,
@@ -60,8 +60,7 @@ documentation, from the POC, or from the backend's own conventions. The sources 
    controllers drive, on a clock the fixtures control (`settings.json` `speed`): a cluster
    joins, imports and gains its add-ons in stages, a lost lease recovers, a cluster detaches
    and goes away (`scenarios.json`); a model walks KServe's conditions to `Ready` or stops at
-   a failure, and a placed model rolls out site by site. Once the subscriptions area lands (plan 4
-   below), a subscription will wait for its models' rate-limit policies to be accepted.
+   a failure, and a placed model rolls out site by site.
 6. **No real data, ever.** Fixtures use `example.com`, invented UUIDs and fictional sites.
    Research notes quote field paths, string constants, versions and in-cluster object names
    from the real systems, never the dev hub's routes, cluster ids or people.
@@ -92,7 +91,7 @@ the masthead:
 The browser tests (`make e2e`) start the same fake on `fixtures-poc/` instead of `fixtures/`,
 from `frontend/playwright.config.ts`: the PoC's four sites
 (`site1` San Francisco, `site2` New York, `site3` Brussels and the unenrolled `site4` Sydney),
-its three models, three organizations and three subscriptions, with no scenario events, so
+its three models and three organizations, with no scenario events, so
 nothing changes over time. Organizations that a fixture lists without a version are loaded at
 version "1" (the fake's fixture loader, `bff/internal/fakebackend`), so a stale save is refused on every seeded organization.
 `fixtures-poc/README.md` lists the files. The browser tests run on
@@ -263,6 +262,10 @@ Backend ask: the `Models` service and `Model` message as drafted in
 feature gate on the hub.
 
 ### 4. Catalog and subscriptions (MaaSModelRef, MaaSSubscription, MaaSAuthPolicy)
+
+Removed from the fake: the Subscriptions pages call the backend's own `ai_grid.v1.Subscriptions`
+over Connect (`docs/connect.md`, "The Subscriptions area"), and the backend's fakes serve them
+(`make dev-fake-infra`). What follows is the plan as the fake implemented it, for the record.
 
 Fake: a catalog entry starts `Pending/NoPairingFound` and becomes `Ready` once a
 subscription and an auth policy reference it (in any phase; the pairing check ignores

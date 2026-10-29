@@ -204,8 +204,8 @@ out of the summary, and its cluster is to apply again like a new one.
   deviation, below; the console's MWRS uses the CRD default cascade
   `Background`: the finalize reconciler deletes the works and drops the finalizer in one pass, so
   the MWRS is gone immediately and the works drain in the cluster namespaces out of sight), and
-  answers `FailedPrecondition` through the `referencedBy` hook, which the subscriptions area wires
-  up (`SetReferencedBy`): a subscription or an auth policy that names the model blocks the delete,
+  answers `FailedPrecondition` through the `referencedBy` hook (`SetReferencedBy`), which nothing
+  in the fake wires since the subscriptions moved to the backend's Connect API (tests set it),
   the fixtures' unmanaged policies included, and the message names each referrer.
 
 Phase (a console derivation, see `ModelPhase` in `model_type.proto`): a hub deployment is READY

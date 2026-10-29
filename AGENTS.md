@@ -115,8 +115,9 @@ behaviour and points at its source (a file, a function or an upstream commit), n
 ## The backend's own API over Connect
 
 The console is moving to the backend's RPCs, called from the browser over Connect (ADRs 0002
-and 0004), through one provider at the app root. The Clusters pages and the AI Grid map read and
-write through it (`docs/connect.md`, "The Clusters area"); the other areas still use `/api/v1`:
+and 0004), through one provider at the app root. The Clusters pages, the AI Grid map and the
+Subscriptions pages read and write through it (`docs/connect.md`, "The Clusters area" and "The
+Subscriptions area"); the other areas still use `/api/v1`:
 
 - `.backend-api-version` holds the backend commit (one full SHA) whose `proto/` (package
   `ai_grid.v1`, not `ai_grid/draft`) the frontend is generated from. `make generate-api` writes
@@ -197,15 +198,13 @@ when the RPCs allow it.
   they hold what a read shows (`description: ""`, `enabled: true`, `attributes: {}`), which may
   not be what Keycloak stores (`readBackValue`), and send a PATCH that sets only such fields as
   an update with the mask `id`.
-- The stopgap Models and Subscriptions clients (`bff/internal/backend/v1_models.go`, `v1.go`),
-  until Models and Subscriptions move to the Connect clients:
+- The stopgap Models client (`bff/internal/backend/v1_models.go`, `v1.go`), until Models moves
+  to the Connect clients:
   - the models namespace: reads give the BFF's `--models-namespace`, and a model elsewhere is
     NotFound;
-  - 501 for `createAuthPolicy: false`, and for a model list with a filter or an order;
-  - a model or registration the backend reports as saved to Git (reason `SavedToGit`, no phase)
-    keeps that reason, which the UI shows as Saved to Git;
-  - a subscription update reads the subscription first and sends its annotations back with the
-    display name and description changed, because the backend replaces the map whole;
+  - 501 for a model list with a filter or an order;
+  - a model the backend reports as saved to Git (reason `SavedToGit`, no phase) keeps that
+    reason, which the UI shows as Saved to Git;
   - a delete with `If-Match: "0"` is 412, because the backend treats version 0 as no check.
 - `toTenant` (`bff/internal/api/tenants.go`), fallbacks for the shipped backend: `enabled`
   defaults to true, `domainDetails` is built from `domains`.
