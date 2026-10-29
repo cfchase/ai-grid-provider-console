@@ -8,6 +8,7 @@
 // - The PoC's failNext becomes a one-shot `before` hook on the fake.
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { focusManager } from '@tanstack/react-query';
 import { MemoryRouter, useNavigate } from 'react-router-dom';
 import type { NavigateFunction } from 'react-router-dom';
 import { clone } from '@bufbuild/protobuf';
@@ -491,6 +492,32 @@ describe('administrator subscription flows', () => {
     expect(stored(service, 'engineering').metadata?.annotations['openshift.io/description']).toBe(
       'Production models for the engineering team.',
     );
+  });
+
+  it('keeps the version it opened with when the subscription reloads during an edit', async () => {
+    const service = new MockConsoleService();
+    const user = userEvent.setup();
+    renderAt('/subscriptions/edit/engineering', service);
+    const description = await screen.findByTestId('subscription-name-desc-description');
+    await user.clear(description);
+    await user.paste('Unsaved description');
+    // Another admin saves a change, and the page's query reloads, as it does when the tab regains focus.
+    const other = stored(service, 'engineering');
+    other.metadata!.version = 2;
+    other.spec!.priority = 555;
+    await act(async () => {
+      focusManager.setFocused(false);
+      focusManager.setFocused(true);
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+    await user.click(screen.getByTestId('update-subscription-button'));
+    expect(
+      await screen.findByText(
+        'update Subscription "engineering": the subscription changed since it was read; reload and retry',
+      ),
+    ).toBeVisible();
+    expect(description).toHaveValue('Unsaved description');
+    expect(stored(service, 'engineering').spec?.priority).toBe(555);
   });
 });
 
