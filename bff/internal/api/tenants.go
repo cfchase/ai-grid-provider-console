@@ -210,16 +210,6 @@ func listFilter(r *http.Request, removed ...string) (*string, error) {
 	return nil, nil
 }
 
-// noQuery refuses query parameters on a list that takes none (subscriptions:
-// ListSubscriptionsRequest carries no filter or page the BFF could forward),
-// so `?filter=false` is 422 rather than the whole list read as a filtered one.
-func noQuery(r *http.Request, what string) error {
-	if r.URL.RawQuery == "" {
-		return nil
-	}
-	return Errorf(http.StatusUnprocessableEntity, fmt.Sprintf("the %s list takes no query parameters; filter, sort and page it in the client", what))
-}
-
 // listTenants answers GET /api/v1/tenants?offset=&limit=&filter=. The
 // backend returns them in Keycloak's order (by name) and evaluates `filter`
 // (listFilter); `meta` carries the page, with `total` counted over the whole

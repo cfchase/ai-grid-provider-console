@@ -48,25 +48,12 @@ type Server struct {
 	aigridv1.UnimplementedGridServer
 	aigridv1.UnimplementedModelsServer
 	aigridv1.UnimplementedCatalogItemsServer
-	aigridv1.UnimplementedSubscriptionsServer
 
 	mu       sync.RWMutex
 	clusters map[string]*aigridv1.ManagedCluster
 	tenants  map[string]*aigridv1.Tenant
 	models   map[string]*model
 	access   Access
-
-	// subscriptions and authPolicies are the MaaS objects, stored without
-	// status (it is derived on every read, see subscriptionStatus);
-	// managedPolicies are the policies CreateSubscription made, which
-	// DeleteSubscription removes with their subscription, and policyCreated
-	// when it made them (wall time). liveSubscriptions are the fixture
-	// subscriptions without createTime, created when the fake starts.
-	subscriptions     map[string]*aigridv1.Subscription
-	authPolicies      map[string]*aigridv1.AuthPolicy
-	managedPolicies   map[string]bool
-	policyCreated     map[string]time.Time
-	liveSubscriptions map[string]bool
 
 	// presets are the installed LLMInferenceServiceConfigs baseRefs resolve
 	// against; bindings the ManagedClusterSets bound per model namespace
@@ -135,15 +122,10 @@ func New(fx *Fixtures, logger *slog.Logger) (*Server, error) {
 		newSuffix:    newWorkSuffix,
 		Latency:      fx.Latency.Duration(),
 		logger:       logger,
-
-		subscriptions:     map[string]*aigridv1.Subscription{},
-		authPolicies:      map[string]*aigridv1.AuthPolicy{},
-		managedPolicies:   map[string]bool{},
-		policyCreated:     map[string]time.Time{},
-		liveSubscriptions: map[string]bool{},
 	}
-	// A model is in use while a subscription or an auth policy references it.
-	s.referencedBy = s.maasReferencing
+	// Nothing in the fake references a model: subscriptions are the backend's own Connect API
+	// (frontend/src/pages/subscriptions), which the fake doesn't serve.
+	s.referencedBy = func(string, string) []string { return nil }
 	if s.speed <= 0 {
 		s.speed = 1
 	}
@@ -216,32 +198,6 @@ func New(fx *Fixtures, logger *slog.Logger) (*Server, error) {
 		}
 	}
 	s.reconcileModels(s.start)
-	for _, sub := range fx.Subscriptions {
-		if sub.GetName() == "" {
-			return nil, fmt.Errorf("fixture subscription without a name")
-		}
-		if _, dup := s.subscriptions[sub.GetName()]; dup {
-			return nil, fmt.Errorf("fixture subscription %q listed twice", sub.GetName())
-		}
-		sub = proto.Clone(sub).(*aigridv1.Subscription)
-		if sub.GetResourceVersion() == "" {
-			sub.ResourceVersion = "1"
-		}
-		if sub.GetCreateTime() == nil {
-			sub.CreateTime = k8sTime(s.start)
-			s.liveSubscriptions[sub.GetName()] = true
-		}
-		s.subscriptions[sub.GetName()] = sub
-	}
-	for _, p := range fx.AuthPolicies {
-		if p.GetName() == "" {
-			return nil, fmt.Errorf("fixture auth policy without a name")
-		}
-		if _, dup := s.authPolicies[p.GetName()]; dup {
-			return nil, fmt.Errorf("fixture auth policy %q listed twice", p.GetName())
-		}
-		s.authPolicies[p.GetName()] = proto.Clone(p).(*aigridv1.AuthPolicy)
-	}
 	return s, nil
 }
 
@@ -259,8 +215,8 @@ func (s *Server) SetIDGenerator(next func() string) {
 
 // SetClock replaces the time source and restarts the scenario clock from it,
 // so tests drive transitions deterministically. The fixture models and
-// subscriptions restart from the new clock (a fixture without
-// creationTimestamp or createTime is created at the new start); objects
+// restart from the new clock (a fixture without creationTimestamp is
+// created at the new start); objects
 // created through the API keep their times.
 func (s *Server) SetClock(clock func() time.Time) {
 	s.mu.Lock()
@@ -273,11 +229,6 @@ func (s *Server) SetClock(clock func() time.Time) {
 		}
 	}
 	s.reconcileModels(s.start)
-	for name := range s.liveSubscriptions {
-		if sub, ok := s.subscriptions[name]; ok {
-			sub.CreateTime = k8sTime(s.start)
-		}
-	}
 }
 
 // Register attaches every service of the draft proto, the health service and
@@ -290,7 +241,6 @@ func (s *Server) Register(srv *grpc.Server) {
 	aigridv1.RegisterGridServer(srv, s)
 	aigridv1.RegisterModelsServer(srv, s)
 	aigridv1.RegisterCatalogItemsServer(srv, s)
-	aigridv1.RegisterSubscriptionsServer(srv, s)
 	h := health.NewServer()
 	h.SetServingStatus("", healthv1.HealthCheckResponse_SERVING)
 	healthv1.RegisterHealthServer(srv, h)

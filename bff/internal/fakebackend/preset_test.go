@@ -104,8 +104,8 @@ func TestPoCPresetMatchesThePoC(t *testing.T) {
 		if want, ok := wantModels[m.GetName()]; !ok || ann[AnnotationDisplayName] != want || ann["openshift.io/description"] != "" {
 			t.Errorf("model %s display name %q description %q, want %q and none", m.GetName(), ann[AnnotationDisplayName], ann["openshift.io/description"], want)
 		}
-		if m.GetMetadata().GetNamespace() != DefaultModelNamespace || m.GetSpec().GetPlacement() != nil {
-			t.Errorf("%s: namespace %q placement %v; want %s and no locations", m.GetName(), m.GetMetadata().GetNamespace(), m.GetSpec().GetPlacement(), DefaultModelNamespace)
+		if m.GetMetadata().GetNamespace() != pocModelNamespace || m.GetSpec().GetPlacement() != nil {
+			t.Errorf("%s: namespace %q placement %v; want %s and no locations", m.GetName(), m.GetMetadata().GetNamespace(), m.GetSpec().GetPlacement(), pocModelNamespace)
 		}
 		wantPhase(t, m, aigridv1.ModelPhase_MODEL_PHASE_READY, "")
 	}
@@ -128,31 +128,6 @@ func TestPoCPresetMatchesThePoC(t *testing.T) {
 		t.Errorf("organizations %v", tenantNames)
 	}
 
-	subs, err := s.ListSubscriptions(ctx, &aigridv1.ListSubscriptionsRequest{})
-	if err != nil {
-		t.Fatal(err)
-	}
-	var subNames []string
-	for _, sub := range subs.GetSubscriptions() {
-		subNames = append(subNames, sub.GetName())
-		// The form requires an organization, so every preset subscription has one.
-		if !tenantIDs[sub.GetTokenMetadata().GetOrganizationId()] {
-			t.Errorf("%s: organization %q is not a preset organization", sub.GetName(), sub.GetTokenMetadata().GetOrganizationId())
-		}
-		if sub.GetPhase() != phaseActive {
-			t.Errorf("%s: phase %s, want Active", sub.GetName(), sub.GetPhase())
-		}
-		info, err := s.GetSubscription(ctx, &aigridv1.GetSubscriptionRequest{Name: sub.GetName()})
-		if err != nil {
-			t.Fatal(err)
-		}
-		if len(info.GetModelRefs()) != len(sub.GetModelRefs()) {
-			t.Errorf("%s: %d of %d model references resolve", sub.GetName(), len(info.GetModelRefs()), len(sub.GetModelRefs()))
-		}
-	}
-	if !slices.Equal(subNames, []string{"data-science", "engineering", "research"}) {
-		t.Errorf("subscriptions %v", subNames)
-	}
 }
 
 // TestPoCPresetEnrollsSite4AsProvisioning: as in the PoC, enrolling site4
@@ -182,3 +157,6 @@ func TestPoCPresetEnrollsSite4AsProvisioning(t *testing.T) {
 		t.Fatalf("locations after enrolling site4 %v %v", locations, err)
 	}
 }
+
+// pocModelNamespace is the namespace of the PoC preset's models (mock/fixtures-poc/models.json).
+const pocModelNamespace = "ai-grid-models"

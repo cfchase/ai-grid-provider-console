@@ -47,7 +47,7 @@ type Config struct {
 	// Timeout bounds every RPC.
 	Timeout time.Duration
 	// DraftAPI says the backend serves the console's draft proto (the fake).
-	// Otherwise clusters, tenants, subscriptions and models use the backend's real RPCs (v1.go).
+	// Otherwise clusters, tenants and models use the backend's real RPCs (v1.go).
 	DraftAPI bool
 	// ModelsNamespace is the namespace the console's models are in. The real
 	// backend's models have none, so its models are reported in this one
@@ -57,13 +57,12 @@ type Config struct {
 
 // Client wraps the generated service clients.
 type Client struct {
-	conn          *grpc.ClientConn
-	timeout       time.Duration
-	Health        aigridv1.AiGridClient
-	Tenants       aigridv1.TenantsClient
-	Models        aigridv1.ModelsClient
-	Subscriptions aigridv1.SubscriptionsClient
-	Grid          aigridv1.GridClient
+	conn    *grpc.ClientConn
+	timeout time.Duration
+	Health  aigridv1.AiGridClient
+	Tenants aigridv1.TenantsClient
+	Models  aigridv1.ModelsClient
+	Grid    aigridv1.GridClient
 }
 
 // Dial creates the connection. It does not connect until the first RPC, so a
@@ -90,20 +89,18 @@ func Dial(cfg Config, extra ...grpc.DialOption) (*Client, error) {
 		timeout = 10 * time.Second
 	}
 	var tenants aigridv1.TenantsClient = v1Tenants{conn}
-	var subscriptions aigridv1.SubscriptionsClient = v1Subscriptions{conn}
 	var models aigridv1.ModelsClient = v1Models{conn: conn, namespace: cfg.ModelsNamespace}
 	if cfg.DraftAPI {
 		tenants = aigridv1.NewTenantsClient(conn)
-		subscriptions, models = aigridv1.NewSubscriptionsClient(conn), aigridv1.NewModelsClient(conn)
+		models = aigridv1.NewModelsClient(conn)
 	}
 	return &Client{
-		conn:          conn,
-		timeout:       timeout,
-		Health:        aigridv1.NewAiGridClient(conn),
-		Tenants:       tenants,
-		Models:        models,
-		Subscriptions: subscriptions,
-		Grid:          aigridv1.NewGridClient(conn),
+		conn:    conn,
+		timeout: timeout,
+		Health:  aigridv1.NewAiGridClient(conn),
+		Tenants: tenants,
+		Models:  models,
+		Grid:    aigridv1.NewGridClient(conn),
 	}, nil
 }
 

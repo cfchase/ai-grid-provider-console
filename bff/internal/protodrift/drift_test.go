@@ -7,7 +7,7 @@
 // draft's client.
 //
 // The copy is a stopgap: the BFF calls the backend's ai_grid.v1 Tenants
-// and Subscriptions services while the rest of the console still speaks the draft. Protobuf is wire
+// and Models services while the rest of the console still speaks the draft. Protobuf is wire
 // compatible across package names, so a copied field that the backend renumbers, retypes
 // or drops would silently send or read the wrong data. hack/sync-upstream-proto.sh
 // refreshes the vendored copy (nightly in .github/workflows/drift.yaml) and this test
@@ -57,11 +57,6 @@ var calls = []struct {
 	{"ai_grid.v1.Tenants.Create", "ai_grid.backend.v1.TenantsCreateRequest", "ai_grid.backend.v1.TenantsCreateResponse"},
 	{"ai_grid.v1.Tenants.Update", "ai_grid.backend.v1.TenantsUpdateRequest", "ai_grid.backend.v1.TenantsUpdateResponse"},
 	{"ai_grid.v1.Tenants.Delete", "ai_grid.backend.v1.TenantsDeleteRequest", "ai_grid.backend.v1.TenantsDeleteResponse"},
-	{"ai_grid.v1.Subscriptions.List", "ai_grid.backend.v1.SubscriptionsListRequest", "ai_grid.backend.v1.SubscriptionsListResponse"},
-	{"ai_grid.v1.Subscriptions.Get", "ai_grid.backend.v1.SubscriptionsGetRequest", "ai_grid.backend.v1.SubscriptionsGetResponse"},
-	{"ai_grid.v1.Subscriptions.Create", "ai_grid.backend.v1.SubscriptionsCreateRequest", "ai_grid.backend.v1.SubscriptionsCreateResponse"},
-	{"ai_grid.v1.Subscriptions.Update", "ai_grid.backend.v1.SubscriptionsUpdateRequest", "ai_grid.backend.v1.SubscriptionsUpdateResponse"},
-	{"ai_grid.v1.Subscriptions.Delete", "ai_grid.backend.v1.SubscriptionsDeleteRequest", "ai_grid.backend.v1.SubscriptionsDeleteResponse"},
 	{"ai_grid.v1.Models.List", "ai_grid.backend.v1.ModelsListRequest", "ai_grid.backend.v1.ModelsListResponse"},
 	{"ai_grid.v1.Models.Get", "ai_grid.backend.v1.ModelsGetRequest", "ai_grid.backend.v1.ModelsGetResponse"},
 	{"ai_grid.v1.Models.Create", "ai_grid.backend.v1.ModelsCreateRequest", "ai_grid.backend.v1.ModelsCreateResponse"},

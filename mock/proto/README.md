@@ -13,9 +13,10 @@ The first backend's proto had three RPCs. The console needs more than that, so i
 **draft** of the next proto in `mock/proto/ai_grid/v1/`, split by type as the style guide in
 `mock/research/backend-conventions.md` section 5 says (`ai_grid.proto`, `condition_type.proto`,
 `metadata_type.proto`, `managed_cluster_type.proto`, `managed_clusters_service.proto`,
-`tenant_type.proto`, `tenants_service.proto`, `model_type.proto`, `models_service.proto`, and the
-`subscriptions_service.proto`, `subscription_type.proto`, and `grid_service.proto`, whose
-`Grid/GetNetwork` and the whole of `catalog_items_service.proto` are still placeholders). It is the
+`tenant_type.proto`, `tenants_service.proto`, `model_type.proto`, `models_service.proto`, and
+`grid_service.proto`, whose `Grid/GetNetwork` and the whole of `catalog_items_service.proto` are
+still placeholders; the draft's subscriptions are gone, because the Subscriptions pages call the
+backend's own `ai_grid.v1.Subscriptions` over Connect). It is the
 console's **proposal** to the backend team, nothing more: the shapes are the ones drafted in
 section 6 of that report, every file says so in its header, and the `go_package` is the
 console's own (`bff/gen/ai_grid/v1`), not the backend's.
@@ -33,7 +34,7 @@ What keeps it honest:
   `mock/proto/upstream/image.binpb` is those files compiled with their imports by `buf build`.
   `hack/sync-upstream-proto.sh <ref>` refreshes all three.
 - **A test guards the BFF's copy.** Against the real backend the BFF calls `Clusters`,
-  `Tenants`, `Subscriptions` and `Models` with a copy of their messages, `mock/proto/ai_grid/backend/v1`.
+  `Tenants` and `Models` with a copy of their messages, `mock/proto/ai_grid/backend/v1`.
   `bff/internal/protodrift` loads the vendored image and checks that every copied message,
   field (same number, name, cardinality, presence, oneof and type) and enum value is still
   the backend's, and that the RPCs the BFF calls still take and return those messages.

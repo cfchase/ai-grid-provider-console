@@ -670,11 +670,6 @@ var standIns = map[string]string{
 	"/ai_grid.v1.Models/ListLocations": "/ai_grid.v1.Models/ListLocations",
 	// The draft's ListLocations answers what ListPlacementClusters does (the clusters a model can be placed on).
 	"/ai_grid.v1.Models/ListPlacementClusters": "/ai_grid.v1.Models/ListLocations",
-	"/ai_grid.v1.Subscriptions/List":           "/ai_grid.v1.Subscriptions/ListSubscriptions",
-	"/ai_grid.v1.Subscriptions/Get":            "/ai_grid.v1.Subscriptions/GetSubscription",
-	"/ai_grid.v1.Subscriptions/Create":         "/ai_grid.v1.Subscriptions/CreateSubscription",
-	"/ai_grid.v1.Subscriptions/Update":         "/ai_grid.v1.Subscriptions/UpdateSubscription",
-	"/ai_grid.v1.Subscriptions/Delete":         "/ai_grid.v1.Subscriptions/DeleteSubscription",
 }
 
 // upstreamWithoutStandIn lists the backend's methods the fake has no draft
@@ -683,6 +678,12 @@ var upstreamWithoutStandIn = map[string]string{
 	"/ai_grid.v1.Clusters/Create":     "the console doesn't create clusters (not in the relay's allowlist, AGENTS.md)",
 	"/ai_grid.v1.Clusters/Delete":     "the console doesn't delete clusters (not in the relay's allowlist, AGENTS.md)",
 	"/ai_grid.v1.Tenants/ListMembers": "the console never lists an organization's members (AGENTS.md, decided 2026-10-23)",
+	// The Subscriptions pages call the backend's own API over Connect (make dev-fake-infra).
+	"/ai_grid.v1.Subscriptions/List":   "the console reads subscriptions from the backend over Connect",
+	"/ai_grid.v1.Subscriptions/Get":    "the console reads subscriptions from the backend over Connect",
+	"/ai_grid.v1.Subscriptions/Create": "the console writes subscriptions to the backend over Connect",
+	"/ai_grid.v1.Subscriptions/Update": "the console writes subscriptions to the backend over Connect",
+	"/ai_grid.v1.Subscriptions/Delete": "the console writes subscriptions to the backend over Connect",
 }
 
 // TestFakeStandsInForEveryUpstreamMethod compares the fake with the
@@ -817,7 +818,6 @@ func TestUnimplementedMethodsCatchesStubs(t *testing.T) {
 	aigridv1.RegisterGridServer(srv, aigridv1.UnimplementedGridServer{})
 	aigridv1.RegisterModelsServer(srv, aigridv1.UnimplementedModelsServer{})
 	aigridv1.RegisterCatalogItemsServer(srv, aigridv1.UnimplementedCatalogItemsServer{})
-	aigridv1.RegisterSubscriptionsServer(srv, aigridv1.UnimplementedSubscriptionsServer{})
 	missing, called := unimplementedMethods(t, srv)
 	if len(called) == 0 || !slices.Equal(missing, called) {
 		t.Errorf("stub-only server: got missing %v, want every method %v", missing, called)

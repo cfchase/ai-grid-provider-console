@@ -29,7 +29,7 @@ const V1ModelsNamespace = "ai-grid-models"
 // V1 answers the backend's own API, ai_grid.v1 as ai-grid-provider-backend
 // serves it, which is what production calls through the adapters in
 // internal/backend (v1.go, v1_models.go): AiGrid (Ping only), Tenants,
-// Models and Subscriptions on the backend's method paths, with the
+// and Models on the backend's method paths, with the
 // messages of the BFF's copy of its proto (ai_grid.backend.v1). The backend
 // has no Grid service and no capabilities, so those answer Unimplemented, and
 // so does every method it doesn't have.
@@ -38,8 +38,7 @@ const V1ModelsNamespace = "ai-grid-models"
 // handler test needs them:
 //   - metadata.version is the lock. An Update with lock and version 0 is
 //     InvalidArgument; a nonzero version other than the stored one is Aborted;
-//     and an update stores version + 1 (models_git.go and subscriptions_git.go
-//     gitUpdate). A Delete
+//     and an update stores version + 1 (models_git.go gitUpdate). A Delete
 //     with a nonzero version other than the stored one is Aborted (gitDelete).
 //   - A tenant Update or Delete without a version is InvalidArgument
 //     (tenants_server.go errTenantVersionRequired), and a tenant update
@@ -57,11 +56,8 @@ const V1ModelsNamespace = "ai-grid-models"
 // Seed the exported fields before StartV1. Each call is handled under a lock,
 // so concurrent calls are safe; read Calls and Metadata after a call returned.
 type V1 struct {
-	Tenants            []*backendv1.Tenant
-	Models             []*backendv1.Model
-	Subscriptions      []*backendv1.Subscription
-	AuthPolicies       []*backendv1.AuthPolicy
-	ModelRegistrations []*backendv1.ModelRegistration
+	Tenants []*backendv1.Tenant
+	Models  []*backendv1.Model
 	// Locations is what Models/ListPlacementClusters answers (its clusters).
 	Locations []string
 	// Err makes every call fail with this status.
@@ -110,13 +106,6 @@ func StartV1(t *testing.T, v *V1) *backend.Client {
 		unary(v, "Update", v.updateModel),
 		unary(v, "Delete", v.deleteModel),
 		unary(v, "ListPlacementClusters", v.listPlacementClusters),
-	}}, v)
-	srv.RegisterService(&grpc.ServiceDesc{ServiceName: "ai_grid.v1.Subscriptions", HandlerType: (*any)(nil), Methods: []grpc.MethodDesc{
-		unary(v, "List", v.listSubscriptions),
-		unary(v, "Get", v.getSubscription),
-		unary(v, "Create", v.createSubscription),
-		unary(v, "Update", v.updateSubscription),
-		unary(v, "Delete", v.deleteSubscription),
 	}}, v)
 	return serve(t, srv, backend.Config{ModelsNamespace: V1ModelsNamespace})
 }
@@ -384,93 +373,6 @@ func (v *V1) deleteModel(in *backendv1.ModelsDeleteRequest) (*backendv1.ModelsDe
 
 func (v *V1) listPlacementClusters(*backendv1.ModelsListPlacementClustersRequest) (*backendv1.ModelsListPlacementClustersResponse, error) {
 	return &backendv1.ModelsListPlacementClustersResponse{Clusters: slices.Clone(v.Locations)}, nil
-}
-
-func (v *V1) listSubscriptions(*backendv1.SubscriptionsListRequest) (*backendv1.SubscriptionsListResponse, error) {
-	sorted := slices.SortedFunc(slices.Values(v.Subscriptions), func(a, b *backendv1.Subscription) int { return cmp.Compare(a.GetId(), b.GetId()) })
-	return &backendv1.SubscriptionsListResponse{Items: clones(sorted)}, nil
-}
-
-func (v *V1) findSubscription(id string) (int, error) {
-	for i, s := range v.Subscriptions {
-		if s.GetId() == id {
-			return i, nil
-		}
-	}
-	return 0, status.Errorf(codes.NotFound, "Subscription %q not found", id)
-}
-
-// getSubscription answers with every auth policy and model registration, as
-// the draft Fake does.
-func (v *V1) getSubscription(in *backendv1.SubscriptionsGetRequest) (*backendv1.SubscriptionsGetResponse, error) {
-	i, err := v.findSubscription(in.GetId())
-	if err != nil {
-		return nil, err
-	}
-	return &backendv1.SubscriptionsGetResponse{
-		Object:             proto.Clone(v.Subscriptions[i]).(*backendv1.Subscription),
-		AuthPolicies:       clones(v.AuthPolicies),
-		ModelRegistrations: clones(v.ModelRegistrations),
-	}, nil
-}
-
-// createSubscription stores the subscription at version 1 and answers with
-// its <id>-policy, which the backend always creates.
-func (v *V1) createSubscription(in *backendv1.SubscriptionsCreateRequest) (*backendv1.SubscriptionsCreateResponse, error) {
-	s := proto.Clone(in.GetObject()).(*backendv1.Subscription)
-	if _, err := v.findSubscription(s.GetId()); err == nil {
-		return nil, status.Errorf(codes.AlreadyExists, "Subscription %q already exists", s.GetId())
-	}
-	if s.Metadata == nil {
-		s.Metadata = &backendv1.Metadata{}
-	}
-	s.Metadata.Name, s.Metadata.Version = s.GetId(), 1
-	v.Subscriptions = append(v.Subscriptions, s)
-	return &backendv1.SubscriptionsCreateResponse{
-		Object:     proto.Clone(s).(*backendv1.Subscription),
-		AuthPolicy: &backendv1.AuthPolicy{Id: s.GetId() + "-policy"},
-	}, nil
-}
-
-func (v *V1) updateSubscription(in *backendv1.SubscriptionsUpdateRequest) (*backendv1.SubscriptionsUpdateResponse, error) {
-	obj := in.GetObject()
-	i, err := v.findSubscription(obj.GetId())
-	if err != nil {
-		return nil, err
-	}
-	s := v.Subscriptions[i]
-	if err := lockedVersion(in.GetLock(), obj.GetMetadata().GetVersion(), s.GetMetadata().GetVersion(), staleV1("update", "Subscription", "subscription", s.GetId())); err != nil {
-		return nil, err
-	}
-	next := proto.Clone(s).(*backendv1.Subscription)
-	if next.Metadata == nil {
-		next.Metadata = &backendv1.Metadata{}
-	}
-	for _, p := range in.GetUpdateMask().GetPaths() {
-		switch p {
-		case "spec":
-			next.Spec = obj.GetSpec()
-		case "metadata.annotations":
-			next.Metadata.Annotations = maps.Clone(obj.GetMetadata().GetAnnotations())
-		default:
-			return nil, status.Errorf(codes.InvalidArgument, "unsupported update_mask path %q", p)
-		}
-	}
-	next.Metadata.Version++
-	v.Subscriptions[i] = next
-	return &backendv1.SubscriptionsUpdateResponse{Object: proto.Clone(next).(*backendv1.Subscription)}, nil
-}
-
-func (v *V1) deleteSubscription(in *backendv1.SubscriptionsDeleteRequest) (*backendv1.SubscriptionsDeleteResponse, error) {
-	i, err := v.findSubscription(in.GetId())
-	if err != nil {
-		return nil, err
-	}
-	if rv := in.GetResourceVersion(); rv != 0 && rv != v.Subscriptions[i].GetMetadata().GetVersion() {
-		return nil, staleV1("delete", "Subscription", "subscription", in.GetId())
-	}
-	v.Subscriptions = slices.Delete(v.Subscriptions, i, i+1)
-	return &backendv1.SubscriptionsDeleteResponse{}, nil
 }
 
 // clones deep-copies items, so an answer never shares a stored message.

@@ -18,8 +18,7 @@ import (
 	aigridv1 "github.com/ai-grid-cloud/ai-grid-provider-console/bff/gen/ai_grid/v1"
 )
 
-// The subscription rules live in package validation, shared with the
-// frontend's cases; the identity-provider rules are below.
+// The identity-provider rules are below.
 
 // invalid returns InvalidArgument with a BadRequest detail, which the BFF turns
 // into {"error":{"fieldErrors":{...}}}.

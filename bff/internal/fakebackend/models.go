@@ -1159,8 +1159,8 @@ func (s *Server) UpdateModel(ctx context.Context, req *aigridv1.UpdateModelReque
 // cluster namespaces afterwards, invisibly to this API (only `Foreground`
 // would keep the MWRS until they are gone). Aborted when `resource_version`
 // is set and stale. FailedPrecondition while
-// something references the model: the check is `referencedBy`, which the
-// catalog and subscriptions area will wire; today nothing references a model.
+// something references the model: the check is `referencedBy`; today
+// nothing in the fake references a model.
 func (s *Server) DeleteModel(ctx context.Context, req *aigridv1.DeleteModelRequest) (*aigridv1.DeleteModelResponse, error) {
 	token, err := s.begin(ctx)
 	if err != nil {
@@ -1203,9 +1203,8 @@ func (s *Server) GetHubCapabilities(ctx context.Context, _ *aigridv1.GetHubCapab
 	return &aigridv1.GetHubCapabilitiesResponse{Capabilities: proto.Clone(s.capabilities).(*aigridv1.HubCapabilities)}, nil
 }
 
-// SetReferencedBy installs the check DeleteModel runs: the names of the
-// catalog entries and subscriptions that reference a model. The catalog area
-// wires it; until then nothing references a model.
+// SetReferencedBy installs the check DeleteModel runs: the names of what
+// references a model (tests). By default nothing does.
 func (s *Server) SetReferencedBy(fn func(namespace, name string) []string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()

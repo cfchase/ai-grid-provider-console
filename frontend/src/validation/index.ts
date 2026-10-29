@@ -113,104 +113,13 @@ export const isBlankIdentityProvider = ({ title, description, config }: z.input<
     config.logoutUrl,
   ].some((v) => v?.trim());
 
-// Ported from krisv/ai-grid-cloud-provider-poc shared/subscription-validation.mjs at 62319b8.
+// Ported from krisv/ai-grid-cloud-provider-poc shared/subscription-validation.mjs at 62319b8: the
+// resource name rule, which the model rules share.
 export const resourceName = z
   .string()
   .min(1)
   .max(253)
   .regex(/^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/);
-export const dnsName = z
-  .string()
-  .min(1)
-  .max(253)
-  .regex(/^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$/);
-const group = z.object({ name: z.string().trim().min(1) }).passthrough();
-const guardrails = z
-  .array(
-    z
-      .object({
-        ref: z.object({ name: dnsName }).strict(),
-        checks: z.array(z.string().min(1).max(63)).max(64).optional(),
-      })
-      .passthrough(),
-  )
-  .max(64);
-// The MaaSSubscription CRD's token rate limit rules and messages, the same as the backend's
-// (bff/internal/validation/subscription.go): the CEL texts are the CRD's; the window pattern
-// and limit range are worded as the API server's schema validator words them (unverified
-// against a hub).
-const MSG_TOKEN_RATE_LIMITS_REQUIRED = 'tokenRateLimits is required unless unlimited is true';
-const MSG_TOKEN_RATE_LIMITS_UNLIMITED = 'tokenRateLimits must not be set when unlimited is true';
-const RATE_WINDOW = /^[1-9]\d{0,3}(s|m|h)$/;
-const rate = z
-  .object({
-    limit: z
-      .number()
-      .int()
-      .min(1, 'should be greater than or equal to 1')
-      .max(1_000_000_000, 'should be less than or equal to 1000000000'),
-    window: z.string().regex(RATE_WINDOW, `should match '${RATE_WINDOW.source}'`),
-  })
-  .passthrough();
-const metadata = z
-  .object({
-    organizationId: z.string().optional(),
-    costCenter: z.string().optional(),
-    labels: z.record(z.string()).optional(),
-  })
-  .passthrough();
-export const inputModelSchema = z
-  .object({
-    name: dnsName.max(63),
-    /** P6: the model's namespace; the backend checks it as a namespace name. */
-    namespace: z.string().optional(),
-    displayName: z.string().optional(),
-    description: z.string().optional(),
-    unlimited: z.boolean().optional(),
-    tokenRateLimits: z.array(rate),
-    billingRate: z.object({ perToken: z.string() }).passthrough().optional(),
-    guardrails: guardrails.optional(),
-  })
-  .passthrough()
-  .superRefine((ref, ctx) => {
-    if (!ref.unlimited && ref.tokenRateLimits.length === 0) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: MSG_TOKEN_RATE_LIMITS_REQUIRED });
-    }
-    if (ref.unlimited && ref.tokenRateLimits.length > 0) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: MSG_TOKEN_RATE_LIMITS_UNLIMITED });
-    }
-  });
-/** The body of PUT /api/v1/subscriptions/{name}: the PoC's updateSchema. */
-export const updateSubscriptionSchema = z
-  .object({
-    namespace: z.never().optional(),
-    displayName: z.string().trim().min(1).optional(),
-    description: z.string().optional(),
-    priority: z.number().int().min(-1_000_000).max(1_000_000),
-    owner: z.object({ groups: z.array(group).min(1), users: z.array(z.string().min(1)).optional() }).passthrough(),
-    modelRefs: z
-      .array(inputModelSchema)
-      .min(1)
-      .refine((refs) => new Set(refs.map((ref) => ref.name)).size === refs.length, 'Models must be unique'),
-    tokenMetadata: metadata.optional(),
-    inferencePriority: z.number().int().min(-2147483648).max(2147483647).optional(),
-    guardrails: guardrails.optional(),
-  })
-  .passthrough();
-/**
- * The body of POST /api/v1/subscriptions: the PoC's createSchema, plus the console's
- * organization, which a new subscription needs (tokenMetadata.organizationId).
- */
-export const createSubscriptionSchema = updateSubscriptionSchema.extend({
-  name: resourceName,
-  createAuthPolicy: z.boolean(),
-  tokenMetadata: z.preprocess(
-    (value) => (value === undefined ? {} : value),
-    metadata.extend({
-      organizationId: z.string({ required_error: 'Select an organization' }).min(1, 'Select an organization'),
-    }),
-  ),
-});
 
 // Ported from krisv/ai-grid-cloud-provider-poc shared/model-validation.mjs at 62319b8.
 export const modelNameSchema = resourceName.max(63);
@@ -254,6 +163,4 @@ export const createModelSchema = z
 export const validators = {
   organization: (input: unknown) => fieldErrorsOf(organizationInputSchema, input),
   model: (input: unknown) => fieldErrorsOf(createModelSchema, input),
-  createSubscription: (input: unknown) => fieldErrorsOf(createSubscriptionSchema, input),
-  updateSubscription: (input: unknown) => fieldErrorsOf(updateSubscriptionSchema, input),
 };

@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"log/slog"
 	"math"
 	"net/http"
@@ -215,7 +214,6 @@ func TestWrongMethodIsJSON405(t *testing.T) {
 	cases := map[string]string{
 		"POST /api/v1/locations":                "GET, HEAD",
 		"PUT /api/v1/tenants/t-1":               "GET, HEAD, PATCH, DELETE",
-		"PATCH /api/v1/subscriptions/s":         "GET, HEAD, PUT, DELETE",
 		"DELETE /api/v1/models":                 "GET, HEAD, POST",
 		"POST /api/v1/models/ai-grid-models/m1": "GET, HEAD, PATCH, DELETE",
 	}
@@ -252,16 +250,13 @@ func TestHeadUserAndConfigAreOpenLikeGet(t *testing.T) {
 	}
 }
 
-// The subscriptions list takes no query parameters and refuses them instead
-// of answering the whole list as if it were filtered or paged; tenants and
-// models refuse a repeated offset or limit as they refuse a repeated filter.
+// Tenants and models refuse a negative or repeated offset or limit as they
+// refuse a repeated filter.
 func TestListQueryParameters(t *testing.T) {
 	t.Parallel()
 	app := newTestApp(t, testConfig(t), &backendtest.Fake{Tenants: seedTenants()})
 	for _, path := range []string{
 		"/api/v1/tenants?offset=-1",
-		"/api/v1/subscriptions?filter=false&limit=1",
-		"/api/v1/subscriptions?offset=0",
 		"/api/v1/tenants?offset=1&offset=2",
 		"/api/v1/tenants?limit=1&limit=1",
 		"/api/v1/models?limit=5&limit=10",
@@ -271,7 +266,7 @@ func TestListQueryParameters(t *testing.T) {
 			t.Errorf("GET %s: %d %s, want 422", path, rec.Code, rec.Body.String())
 		}
 	}
-	for _, path := range []string{"/api/v1/tenants", "/api/v1/subscriptions", "/api/v1/tenants?offset=0&limit=10"} {
+	for _, path := range []string{"/api/v1/tenants", "/api/v1/tenants?offset=0&limit=10"} {
 		if rec := serve(app, asUser(http.MethodGet, path)); rec.Code != http.StatusOK {
 			t.Errorf("GET %s: %d %s", path, rec.Code, rec.Body.String())
 		}
@@ -1084,260 +1079,26 @@ func TestConfigReportsModelsNamespace(t *testing.T) {
 	}
 }
 
-const validSubscription = `{"name":"team-a","displayName":" Team A ","description":"Models for team A.","priority":5,
-"owner":{"groups":[{"name":" team-a "}]},
-"modelRefs":[{"name":"granite-3-8b","tokenRateLimits":[{"limit":1000,"window":"1h"}],"billingRate":{"perToken":"0.000002"},
-"guardrails":[{"ref":{"name":"safety"},"checks":["pii"]}]}],
-"tokenMetadata":{"organizationId":"id-acme","costCenter":"cc","labels":{"env":"prod"}},"inferencePriority":-5,
-"createAuthPolicy":true}`
-
-// TestSubscriptionWritesRequireJSONContentType: the subscription writes get
-// the BFF's 415 for a body that isn't declared JSON (what a cross-site form or
-// a text/plain fetch sends without a CORS preflight), before any backend
-// call and before the If-Match check, so the PUT here sends none.
-// TestWritesRequireJSONContentType covers the other routes.
-func TestSubscriptionWritesRequireJSONContentType(t *testing.T) {
-	t.Parallel()
-	for _, r := range []struct{ method, path string }{
-		{http.MethodPost, "/api/v1/subscriptions"},
-		{http.MethodPut, "/api/v1/subscriptions/engineering"},
-	} {
-		for _, ct := range []string{"", "text/plain", "application/x-www-form-urlencoded", "multipart/form-data; boundary=x"} {
-			fake := &backendtest.Fake{}
-			req := jsonRequest(r.method, r.path, validSubscription)
-			if ct == "" {
-				req.Header.Del("Content-Type")
-			} else {
-				req.Header.Set("Content-Type", ct)
-			}
-			rec := serve(newTestApp(t, testConfig(t), fake), req)
-			if rec.Code != http.StatusUnsupportedMediaType || decodeError(t, rec).Error.Message != "request body must be JSON: send Content-Type: application/json" {
-				t.Errorf("%s %s with Content-Type %q: %d %s", r.method, r.path, ct, rec.Code, rec.Body)
-			}
-			if len(fake.Calls) != 0 {
-				t.Errorf("%s %s with %q reached the backend: %v", r.method, r.path, ct, fake.Calls)
-			}
-		}
-	}
-}
-
-// TestSubscriptionUpdateRefusesCreateFields: PUT's body has no `name` or
-// `createAuthPolicy`, so strict decoding refuses them instead of ignoring
-// them.
-func TestSubscriptionUpdateRefusesCreateFields(t *testing.T) {
-	t.Parallel()
-	fake := &backendtest.Fake{Subscriptions: []*aigridv1.Subscription{{Name: "team-a", ResourceVersion: "1"}}}
-	app := newTestApp(t, testConfig(t), fake)
-	for _, field := range []string{`"name":"team-a"`, `"createAuthPolicy":true`} {
-		rec := serve(app, withIfMatch(jsonRequest(http.MethodPut, "/api/v1/subscriptions/team-a", `{`+field+`,"priority":1,"owner":{"groups":[]},"modelRefs":[]}`), `"1"`))
-		if rec.Code != http.StatusUnprocessableEntity || fake.LastSubscriptionUpdate != nil {
-			t.Errorf("PUT with %s = %d %s", field, rec.Code, rec.Body.String())
-		}
-	}
-}
-
-func TestSubscriptionRoutes(t *testing.T) {
-	t.Parallel()
-	ts := timestamppb.New(time.Date(2026, 9, 1, 9, 0, 0, 0, time.UTC))
-	rate := "0.000002"
-	granite := &aigridv1.Model{Name: "granite-3-8b", Metadata: &aigridv1.ObjectMeta{Namespace: "ai-grid-models", ResourceVersion: "1"}, Spec: &aigridv1.ModelSpec{}}
-	eng := &aigridv1.Subscription{
-		Name: "engineering", DisplayName: "Engineering", Priority: 100,
-		Owner: &aigridv1.Owner{Users: []string{"alice"}, Groups: []string{"engineering"}},
-		ModelRefs: []*aigridv1.ModelSubscriptionRef{{Name: "granite-3-8b", TokenRateLimits: []*aigridv1.TokenRateLimit{{Limit: 100000, Window: "1h"}},
-			BillingRatePerToken: &rate, Guardrails: []*aigridv1.GuardrailAttachment{{RefName: "safety"}}}},
-		TokenMetadata: &aigridv1.TokenMetadata{OrganizationId: "id-acme"},
-		Phase:         "Active", ResourceVersion: "3", CreateTime: ts,
-	}
-	fake := &backendtest.Fake{
-		Subscriptions: []*aigridv1.Subscription{eng, {Name: "data-science", ResourceVersion: "1"}},
-		Models:        []*aigridv1.Model{granite},
-		AuthPolicies: []*aigridv1.AuthPolicy{{Name: "engineering-policy", Phase: "Active",
-			ModelRefs: []*aigridv1.AuthPolicyModelRef{{Name: "granite-3-8b"}}, SubjectGroups: []string{"engineering"}}},
-	}
-	app := newTestApp(t, testConfig(t), fake)
-	send := func(method, path, body, ifMatch string) *httptest.ResponseRecorder {
-		req := asUser(method, path)
-		if body != "" {
-			req.Body = io.NopCloser(strings.NewReader(body))
-			req.Header.Set("Content-Type", "application/json")
-		}
-		if ifMatch != "" {
-			req.Header.Set("If-Match", ifMatch)
-		}
-		return serve(app, req)
-	}
-
-	// The list keeps the backend's order, in the PoC's MaaSSubscription shape with resourceVersion.
-	var list []map[string]any
-	decodeData(t, send(http.MethodGet, "/api/v1/subscriptions", "", ""), &list)
-	wantEng := map[string]any{
-		"name": "engineering", "displayName": "Engineering", "priority": float64(100),
-		"owner": map[string]any{"users": []any{"alice"}, "groups": []any{map[string]any{"name": "engineering"}}},
-		"modelRefs": []any{map[string]any{"name": "granite-3-8b", "tokenRateLimits": []any{map[string]any{"limit": float64(100000), "window": "1h"}},
-			"billingRate": map[string]any{"perToken": "0.000002"}, "guardrails": []any{map[string]any{"ref": map[string]any{"name": "safety"}}}}},
-		"tokenMetadata": map[string]any{"organizationId": "id-acme"},
-		"phase":         "Active", "resourceVersion": "3", "creationTimestamp": "2026-09-01T09:00:00Z",
-		"conditions": []any{}, "modelRefStatuses": []any{}, "tokenRateLimitStatuses": []any{},
-	}
-	want := []map[string]any{
-		wantEng,
-		{"name": "data-science", "priority": float64(0), "owner": map[string]any{"groups": []any{}}, "modelRefs": []any{}, "resourceVersion": "1",
-			"conditions": []any{}, "modelRefStatuses": []any{}, "tokenRateLimitStatuses": []any{}},
-	}
-	if !reflect.DeepEqual(list, want) {
-		t.Fatalf("subscriptions\n got %v\nwant %v", list, want)
-	}
-
-	// The info shape: the subscription, its models and the policies that cover them.
-	var info map[string]any
-	rec := send(http.MethodGet, "/api/v1/subscriptions/engineering", "", "")
-	if etag := rec.Header().Get("ETag"); etag != `"3"` {
-		t.Fatalf("GET ETag %q, want \"3\"", etag)
-	}
-	decodeData(t, rec, &info)
-	wantInfo := map[string]any{
-		"subscription": wantEng,
-		"modelRefs":    []any{jsonValue(t, toModel(granite))},
-		"authPolicies": []any{map[string]any{"name": "engineering-policy", "phase": "Active", "modelRefs": []any{map[string]any{"name": "granite-3-8b"}},
-			"subjects": map[string]any{"groups": []any{map[string]any{"name": "engineering"}}}, "conditions": []any{}}},
-		"meteringMetadata":   map[string]any{"organizationId": "id-acme"},
-		"modelRegistrations": []any{},
-	}
-	if !reflect.DeepEqual(info, wantInfo) {
-		t.Fatalf("info\n got %v\nwant %v", info, wantInfo)
-	}
-	if rec := send(http.MethodGet, "/api/v1/subscriptions/nope", "", ""); rec.Code != http.StatusNotFound {
-		t.Fatalf("unknown: %d %s", rec.Code, rec.Body)
-	}
-
-	// Create: 201 with the subscription, its policy, and a Location; the body
-	// is forwarded as decoded (the backend validates and normalizes it).
-	rec = send(http.MethodPost, "/api/v1/subscriptions", validSubscription, "")
-	if rec.Code != http.StatusCreated || rec.Header().Get("Location") != "/api/v1/subscriptions/team-a" {
-		t.Fatalf("create: %d %q %s", rec.Code, rec.Header().Get("Location"), rec.Body)
-	}
-	var created struct {
-		Subscription map[string]any
-		AuthPolicy   map[string]any
-	}
-	decodeData(t, rec, &created)
-	if created.Subscription["name"] != "team-a" || created.AuthPolicy["name"] != "team-a-policy" {
-		t.Fatalf("created %v", created)
-	}
-	c := fake.LastSubscriptionCreate
-	o := c.GetObject()
-	if !c.GetCreateAuthPolicy() || o.GetName() != "team-a" || o.GetDisplayName() != " Team A " || o.GetPriority() != 5 ||
-		!reflect.DeepEqual(o.GetOwner().GetGroups(), []string{" team-a "}) || o.GetModelRefs()[0].GetBillingRatePerToken() != "0.000002" ||
-		o.GetModelRefs()[0].GetTokenRateLimits()[0].GetLimit() != 1000 || o.GetModelRefs()[0].GetGuardrails()[0].GetRefName() != "safety" ||
-		o.GetTokenMetadata().GetOrganizationId() != "id-acme" || o.GetTokenMetadata().GetLabels()["env"] != "prod" || o.GetInferencePriority() != -5 {
-		t.Fatalf("create request %v", c)
-	}
-
-	// Update forwards the If-Match version with lock and keeps the path's name;
-	// without If-Match it is 428 before any call, as on every write.
-	update := `{"description":"New","priority":7,"owner":{"users":["alice"],"groups":[{"name":"engineering"}]},
-"modelRefs":[{"name":"granite-3-8b","namespace":"team-b","tokenRateLimits":[{"limit":5,"window":"1m"}]}],"tokenMetadata":{"organizationId":"id-acme"}}`
-	rec = send(http.MethodPut, "/api/v1/subscriptions/engineering", update, "")
-	if u := fake.LastSubscriptionUpdate; rec.Code != http.StatusPreconditionRequired || u != nil {
-		t.Fatalf("update without If-Match: %d %s, request %v", rec.Code, rec.Body, u)
-	}
-	// A header the backend cannot compare is 422 before any call.
-	fake.LastSubscriptionUpdate = nil
-	for _, h := range []string{`3`, `W/"3"`, `""`, `"3", "4"`} {
-		if rec := send(http.MethodPut, "/api/v1/subscriptions/engineering", update, h); rec.Code != http.StatusUnprocessableEntity || fake.LastSubscriptionUpdate != nil {
-			t.Fatalf("update with If-Match %s: %d %s", h, rec.Code, rec.Body)
-		}
-	}
-	rec = send(http.MethodPut, "/api/v1/subscriptions/engineering", update, `"3"`)
-	if rec.Code != http.StatusOK || rec.Header().Get("ETag") != `"3"` {
-		t.Fatalf("update: %d, ETag %q, %s", rec.Code, rec.Header().Get("ETag"), rec.Body)
-	}
-	var updated map[string]any
-	decodeData(t, rec, &updated)
-	if _, ok := updated["subscription"]; !ok {
-		t.Fatalf("update answer %v", updated)
-	}
-	u := fake.LastSubscriptionUpdate
-	if !u.GetLock() || u.GetObject().GetName() != "engineering" || u.GetObject().GetResourceVersion() != "3" || u.GetObject().GetPriority() != 7 ||
-		u.GetObject().GetModelRefs()[0].GetNamespace() != "team-b" ||
-		!reflect.DeepEqual(u.GetObject().GetOwner().GetUsers(), []string{"alice"}) {
-		t.Fatalf("update request %v", u)
-	}
-	// A stale version is the backend's Aborted: 409 with its message.
-	fake.Err = status.Error(codes.Aborted, "This subscription changed. Reload it before saving or deleting.")
-	rec = send(http.MethodPut, "/api/v1/subscriptions/engineering", update, `"2"`)
-	if rec.Code != http.StatusConflict || decodeError(t, rec).Error.Message != "This subscription changed. Reload it before saving or deleting." {
-		t.Fatalf("stale: %d %s", rec.Code, rec.Body)
-	}
-	fake.Err = nil
-
-	// Delete forwards an If-Match version as its precondition and answers 204;
-	// a malformed one is 422 before any call.
-	if rec := send(http.MethodDelete, "/api/v1/subscriptions/engineering", "", `W/"3"`); rec.Code != http.StatusUnprocessableEntity || fake.LastSubscriptionDelete != nil {
-		t.Fatalf("delete with a weak If-Match: %d %s", rec.Code, rec.Body)
-	}
-	if rec := send(http.MethodDelete, "/api/v1/subscriptions/engineering", "", `"3"`); rec.Code != http.StatusNoContent || rec.Body.Len() != 0 {
-		t.Fatalf("delete: %d %s", rec.Code, rec.Body)
-	}
-	if d := fake.LastSubscriptionDelete; d.GetName() != "engineering" || d.GetResourceVersion() != "3" {
-		t.Fatalf("delete request %v", d)
-	}
-	// Without If-Match the delete is 428 before any call.
-	fake.LastSubscriptionDelete = nil
-	if rec := send(http.MethodDelete, "/api/v1/subscriptions/engineering", "", ""); rec.Code != http.StatusPreconditionRequired || fake.LastSubscriptionDelete != nil {
-		t.Fatalf("delete without If-Match: %d %s, request %v", rec.Code, rec.Body, fake.LastSubscriptionDelete)
-	}
-
-	// A backend without the Subscriptions service answers Unimplemented: 501 everywhere.
-	fake.Err = status.Error(codes.Unimplemented, "")
-	for _, r := range []struct{ method, path, body, ifMatch string }{
-		{http.MethodGet, "/api/v1/subscriptions", "", ""},
-		{http.MethodGet, "/api/v1/subscriptions/engineering", "", ""},
-		{http.MethodPost, "/api/v1/subscriptions", validSubscription, ""},
-		{http.MethodPut, "/api/v1/subscriptions/engineering", update, `"1"`},
-		{http.MethodDelete, "/api/v1/subscriptions/engineering", "", `"1"`},
-	} {
-		if rec := send(r.method, r.path, r.body, r.ifMatch); rec.Code != http.StatusNotImplemented {
-			t.Fatalf("%s %s without the service: %d %s", r.method, r.path, rec.Code, rec.Body)
-		}
-	}
-}
-
-// TestBFFForwardsWhatItDecodes: the BFF validates nothing. A subscription
-// with a blank display name reaches the backend unchanged, and the backend's
-// InvalidArgument with a BadRequest comes back as 422 with its fieldErrors.
+// TestBFFForwardsWhatItDecodes: the BFF validates nothing. A tenant with a
+// blank name reaches the backend unchanged, and the backend's InvalidArgument
+// with a BadRequest comes back as 422 with its fieldErrors.
 func TestBFFForwardsWhatItDecodes(t *testing.T) {
 	t.Parallel()
 	st, err := status.New(codes.InvalidArgument, "String must contain at least 1 character(s)").WithDetails(&errdetails.BadRequest{
-		FieldViolations: []*errdetails.BadRequest_FieldViolation{{Field: "displayName", Description: "String must contain at least 1 character(s)"}},
+		FieldViolations: []*errdetails.BadRequest_FieldViolation{{Field: "name", Description: "String must contain at least 1 character(s)"}},
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	fake := &backendtest.Fake{Errs: map[string]error{"CreateSubscription": st.Err()}}
+	fake := &backendtest.Fake{Errs: map[string]error{"CreateTenant": st.Err()}}
 	app := newTestApp(t, testConfig(t), fake)
-	rec := serve(app, jsonRequest(http.MethodPost, "/api/v1/subscriptions", strings.Replace(validSubscription, `" Team A "`, `"   "`, 1)))
-	if got := fake.LastSubscriptionCreate.GetObject().GetDisplayName(); got != "   " {
-		t.Fatalf("forwarded displayName %q", got)
+	rec := serve(app, jsonRequest(http.MethodPost, "/api/v1/tenants", `{"name": "   ", "domains": []}`))
+	if got := fake.LastCreateTenant.GetObject().GetName(); got != "   " {
+		t.Fatalf("forwarded name %q", got)
 	}
-	if rec.Code != http.StatusUnprocessableEntity || decodeError(t, rec).Error.FieldErrors["displayName"] != "String must contain at least 1 character(s)" {
+	if rec.Code != http.StatusUnprocessableEntity || decodeError(t, rec).Error.FieldErrors["name"] != "String must contain at least 1 character(s)" {
 		t.Fatalf("backend's field errors: %d %s", rec.Code, rec.Body)
 	}
-}
-
-// jsonValue is v as encoding/json decodes it into an any.
-func jsonValue(t *testing.T, v any) any {
-	t.Helper()
-	raw, err := json.Marshal(v)
-	if err != nil {
-		t.Fatal(err)
-	}
-	var out any
-	if err := json.Unmarshal(raw, &out); err != nil {
-		t.Fatal(err)
-	}
-	return out
 }
 
 // member is an AI Grid member cluster at site, Available, with the state the
@@ -1465,73 +1226,5 @@ func TestGridOverviewOmitsUpdatedAtTheBackendDidNotSend(t *testing.T) {
 	decodeData(t, rec, &raw)
 	if _, ok := raw["updatedAt"]; ok {
 		t.Fatalf("updatedAt invented: %s", rec.Body)
-	}
-}
-
-// TestSubscriptionStatusMapsOneToOne: the MaaS status (P12) comes back as the
-// backend reports it, under the CRD's names, with no derived reason or
-// status message.
-func TestSubscriptionStatusMapsOneToOne(t *testing.T) {
-	t.Parallel()
-	at := timestamppb.New(time.Date(2026, 10, 16, 9, 0, 1, 0, time.UTC))
-	sub := &aigridv1.Subscription{
-		Name: "team-a", Phase: "Degraded", ResourceVersion: "1",
-		Conditions: []*aigridv1.Condition{
-			{Type: "Ready", Status: aigridv1.ConditionStatus_CONDITION_STATUS_FALSE, Reason: proto.String("PartialFailure"),
-				Message: proto.String("1 of 2 model references are invalid or unavailable"), LastTransitionTime: at},
-			{Type: "SpecPriorityDuplicate", Status: aigridv1.ConditionStatus_CONDITION_STATUS_UNSPECIFIED},
-		},
-		ModelRefStatuses: []*aigridv1.ResourceRefStatus{
-			{Name: "granite-8b-instruct", Namespace: "ai-grid-models", Ready: true, Reason: "Valid"},
-			{Name: "retired-llm", Namespace: "ai-grid-models", Reason: "NotFound", Message: `maasmodelrefs.maas.opendatahub.io "retired-llm" not found`},
-		},
-		TokenRateLimitStatuses: []*aigridv1.TokenRateLimitStatus{{Model: "granite-8b-instruct", Ref: &aigridv1.ResourceRefStatus{
-			Name: "maas-trlp-granite-8b-instruct", Namespace: "ai-grid-models", Reason: "NotAccepted"}}},
-	}
-	fake := &backendtest.Fake{
-		Subscriptions: []*aigridv1.Subscription{sub},
-		AuthPolicies: []*aigridv1.AuthPolicy{{Name: "team-a-policy", Phase: "Active", ModelRefs: []*aigridv1.AuthPolicyModelRef{
-			{Name: "granite-8b-instruct"}, {Name: "mistral-7b-instruct", Namespace: "team-b"}}, Conditions: []*aigridv1.Condition{
-			{Type: "ConflictingAuthPolicy", Status: aigridv1.ConditionStatus_CONDITION_STATUS_FALSE, Reason: proto.String("NoConflict")}}}},
-		ModelRegistrations: []*aigridv1.ModelRegistration{{Name: "granite-8b-instruct", Namespace: "ai-grid-models", Phase: "Ready", Endpoint: "https://maas.example.com",
-			Conditions: []*aigridv1.Condition{{Type: "GovernanceAttached", Status: aigridv1.ConditionStatus_CONDITION_STATUS_TRUE, Reason: proto.String("GovernancePaired")}}}},
-	}
-	app := newTestApp(t, testConfig(t), fake)
-	wantSub := map[string]any{
-		"name": "team-a", "priority": float64(0), "owner": map[string]any{"groups": []any{}}, "modelRefs": []any{}, "resourceVersion": "1", "phase": "Degraded",
-		"conditions": []any{
-			map[string]any{"type": "Ready", "status": "False", "reason": "PartialFailure", "message": "1 of 2 model references are invalid or unavailable",
-				"lastTransitionTime": "2026-10-16T09:00:01Z"},
-			map[string]any{"type": "SpecPriorityDuplicate", "status": "Unknown"},
-		},
-		"modelRefStatuses": []any{
-			map[string]any{"name": "granite-8b-instruct", "namespace": "ai-grid-models", "ready": true, "reason": "Valid"},
-			map[string]any{"name": "retired-llm", "namespace": "ai-grid-models", "ready": false, "reason": "NotFound",
-				"message": `maasmodelrefs.maas.opendatahub.io "retired-llm" not found`},
-		},
-		"tokenRateLimitStatuses": []any{map[string]any{"model": "granite-8b-instruct", "name": "maas-trlp-granite-8b-instruct", "namespace": "ai-grid-models",
-			"ready": false, "reason": "NotAccepted"}},
-	}
-	var list []map[string]any
-	decodeData(t, serve(app, asUser(http.MethodGet, "/api/v1/subscriptions")), &list)
-	if len(list) != 1 || !reflect.DeepEqual(list[0], wantSub) {
-		t.Fatalf("list\n got %v\nwant %v", list, wantSub)
-	}
-	var info map[string]any
-	decodeData(t, serve(app, asUser(http.MethodGet, "/api/v1/subscriptions/team-a")), &info)
-	if !reflect.DeepEqual(info["subscription"], wantSub) {
-		t.Fatalf("info subscription\n got %v\nwant %v", info["subscription"], wantSub)
-	}
-	wantRegs := []any{map[string]any{"name": "granite-8b-instruct", "namespace": "ai-grid-models", "phase": "Ready", "endpoint": "https://maas.example.com",
-		"conditions": []any{map[string]any{"type": "GovernanceAttached", "status": "True", "reason": "GovernancePaired"}}}}
-	if !reflect.DeepEqual(info["modelRegistrations"], wantRegs) {
-		t.Fatalf("registrations\n got %v\nwant %v", info["modelRegistrations"], wantRegs)
-	}
-	policy := info["authPolicies"].([]any)[0].(map[string]any)
-	if want := []any{map[string]any{"type": "ConflictingAuthPolicy", "status": "False", "reason": "NoConflict"}}; !reflect.DeepEqual(policy["conditions"], want) {
-		t.Fatalf("policy conditions %v", policy["conditions"])
-	}
-	if want := []any{map[string]any{"name": "granite-8b-instruct"}, map[string]any{"name": "mistral-7b-instruct", "namespace": "team-b"}}; !reflect.DeepEqual(policy["modelRefs"], want) {
-		t.Fatalf("policy model refs %v", policy["modelRefs"])
 	}
 }

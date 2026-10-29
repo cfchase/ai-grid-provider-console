@@ -1,8 +1,8 @@
-// Stopgap: the messages of the backend's real ai_grid.v1 Tenants, Subscriptions and Models
+// Stopgap: the messages of the backend's real ai_grid.v1 Tenants and Models
 // services, copied from ai-grid-provider-backend proto/ai_grid/v1 (tenants at 8c1a1bc,
-// subscriptions and models at 3428d8d, ListPlacementClusters at 71bb8cc)
-// (condition_type, metadata_type, model_type, models_service, subscription_type,
-// subscriptions_service, tenant_type, tenants_service), so
+// models at 3428d8d, ListPlacementClusters at 71bb8cc)
+// (condition_type, metadata_type, model_type, models_service, tenant_type,
+// tenants_service), so
 // the BFF can call those RPCs. Fields the BFF doesn't use are
 // left out. Field numbers, names and types are unchanged; the validation and HTTP
 // options are dropped. The package is renamed because the draft in ../../v1 declares the same
@@ -100,146 +100,6 @@ message Condition {
   optional string reason = 4;
   optional string message = 5;
 }
-
-message Subscription {
-  string id = 1;
-  Metadata metadata = 2;
-  SubscriptionSpec spec = 3;
-  SubscriptionStatus status = 4;
-}
-
-message SubscriptionSpec {
-  SubscriptionOwner owner = 1;
-  repeated SubscriptionModelRef model_refs = 2;
-  int32 priority = 3;
-  SubscriptionOrganization organization = 4;
-  TokenMetadata token_metadata = 5;
-  optional int32 inference_priority = 6;
-  repeated GuardrailAttachment guardrails = 7;
-}
-
-message SubscriptionOrganization {
-  string id = 1;
-}
-
-message SubscriptionOwner {
-  repeated string groups = 1;
-  repeated string users = 2;
-}
-
-message SubscriptionModelRef {
-  string name = 1;
-  string namespace = 2;
-  repeated TokenRateLimit token_rate_limits = 3;
-  bool unlimited = 4;
-  BillingRate billing_rate = 5;
-  repeated GuardrailAttachment guardrails = 6;
-  string display_name = 7;
-  string description = 8;
-}
-
-message TokenRateLimit {
-  int64 limit = 1;
-  string window = 2;
-}
-
-message BillingRate {
-  string per_token = 1;
-}
-
-message TokenMetadata {
-  string cost_center = 2;
-  map<string, string> labels = 3;
-}
-
-message GuardrailAttachment {
-  string ref_name = 1;
-  repeated string checks = 2;
-}
-
-message SubscriptionStatus {
-  string phase = 1;
-  repeated Condition conditions = 2;
-  repeated ResourceRefStatus model_ref_statuses = 3;
-  repeated TokenRateLimitStatus token_rate_limit_statuses = 4;
-}
-
-message ResourceRefStatus {
-  string name = 1;
-  string namespace = 2;
-  bool ready = 3;
-  string reason = 4;
-  string message = 5;
-}
-
-message TokenRateLimitStatus {
-  ResourceRefStatus ref = 1;
-  string model = 2;
-}
-
-message AuthPolicy {
-  string id = 1;
-  Metadata metadata = 2;
-  repeated string subject_groups = 3;
-  repeated AuthPolicyModelRef model_refs = 5;
-  string phase = 6;
-  repeated Condition conditions = 7;
-}
-
-message AuthPolicyModelRef {
-  string name = 1;
-  string namespace = 2;
-}
-
-message ModelRegistration {
-  string name = 1;
-  string namespace = 2;
-  string phase = 3;
-  string endpoint = 4;
-  repeated Condition conditions = 5;
-}
-
-message SubscriptionsListRequest {}
-
-message SubscriptionsListResponse {
-  repeated Subscription items = 3;
-}
-
-message SubscriptionsGetRequest {
-  string id = 1;
-}
-
-message SubscriptionsGetResponse {
-  Subscription object = 1;
-  repeated AuthPolicy auth_policies = 2;
-  repeated ModelRegistration model_registrations = 3;
-}
-
-message SubscriptionsCreateRequest {
-  Subscription object = 1;
-}
-
-message SubscriptionsCreateResponse {
-  Subscription object = 1;
-  AuthPolicy auth_policy = 2;
-}
-
-message SubscriptionsUpdateRequest {
-  Subscription object = 1;
-  google.protobuf.FieldMask update_mask = 2;
-  bool lock = 3;
-}
-
-message SubscriptionsUpdateResponse {
-  Subscription object = 1;
-}
-
-message SubscriptionsDeleteRequest {
-  string id = 1;
-  int32 resource_version = 2;
-}
-
-message SubscriptionsDeleteResponse {}
 
 message Model {
   string id = 1;

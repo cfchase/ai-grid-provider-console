@@ -31,8 +31,6 @@ import (
 //	                      ManagedClusterSets bound into a model namespace (a
 //	                      namespace not listed is bound to `global`; an empty
 //	                      list simulates a namespace without a binding)
-//	subscriptions.json    {"subscriptions": [Subscription...],
-//	                      "authPolicies": [AuthPolicy...]} in protojson
 //	presets.json          {"namespace": "...", "presets": [...]} the installed
 //	                      LLMInferenceServiceConfigs baseRefs resolve against
 //	access.json           who the fake hub treats as provider admin
@@ -59,9 +57,6 @@ type Fixtures struct {
 	Models        []*aigridv1.Model
 	ModelBindings map[string][]string
 	Presets       *Presets
-	// MaaS subscriptions and the authorization policies paired with them.
-	Subscriptions []*aigridv1.Subscription
-	AuthPolicies  []*aigridv1.AuthPolicy
 	// Hub capabilities (settings.json). ManifestWorkReplicaSetEnabled nil
 	// means true; false mirrors the dev hub, where nothing reconciles an MWRS.
 	ManifestWorkReplicaSetEnabled *bool
@@ -236,32 +231,6 @@ func Load(dir string) (*Fixtures, error) {
 					return nil, fmt.Errorf("models.json bindings[%q]: ManagedClusterSet %q does not exist on the hub", ns, set)
 				}
 			}
-		}
-	}
-
-	if raw, ok, err := readFile(filepath.Join(dir, "subscriptions.json")); err != nil {
-		return nil, err
-	} else if ok {
-		var doc struct {
-			Subscriptions []json.RawMessage `json:"subscriptions"`
-			AuthPolicies  []json.RawMessage `json:"authPolicies"`
-		}
-		if err := json.Unmarshal(raw, &doc); err != nil {
-			return nil, fmt.Errorf("subscriptions.json: %w", err)
-		}
-		for i, m := range doc.Subscriptions {
-			sub := &aigridv1.Subscription{}
-			if err := protojson.Unmarshal(m, sub); err != nil {
-				return nil, fmt.Errorf("subscriptions.json subscription %d: %w", i, err)
-			}
-			fx.Subscriptions = append(fx.Subscriptions, sub)
-		}
-		for i, m := range doc.AuthPolicies {
-			p := &aigridv1.AuthPolicy{}
-			if err := protojson.Unmarshal(m, p); err != nil {
-				return nil, fmt.Errorf("subscriptions.json auth policy %d: %w", i, err)
-			}
-			fx.AuthPolicies = append(fx.AuthPolicies, p)
 		}
 	}
 

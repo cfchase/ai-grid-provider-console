@@ -1,22 +1,19 @@
 package backend
 
 // Stopgap: clients for the backend's real ai_grid.v1
-// Tenants, Subscriptions and Models RPCs (Models in v1_models.go), behind
-// the draft's TenantsClient, SubscriptionsClient and
-// ModelsClient interfaces so the
+// Tenants and Models RPCs (Models in v1_models.go), behind
+// the draft's TenantsClient and ModelsClient interfaces so the
 // API handlers are unchanged. The fake backend
 // serves the draft, so Dial uses these only for a real backend.
 
 import (
 	"context"
-	"maps"
 	"strconv"
 	"strings"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
 
 	backendv1 "github.com/ai-grid-cloud/ai-grid-provider-console/bff/gen/ai_grid/backend/v1"
@@ -30,12 +27,6 @@ const (
 	methodTenantsUpdate = "/ai_grid.v1.Tenants/Update"
 	methodTenantsDelete = "/ai_grid.v1.Tenants/Delete"
 
-	methodSubscriptionsList   = "/ai_grid.v1.Subscriptions/List"
-	methodSubscriptionsGet    = "/ai_grid.v1.Subscriptions/Get"
-	methodSubscriptionsCreate = "/ai_grid.v1.Subscriptions/Create"
-	methodSubscriptionsUpdate = "/ai_grid.v1.Subscriptions/Update"
-	methodSubscriptionsDelete = "/ai_grid.v1.Subscriptions/Delete"
-
 	methodModelsList   = "/ai_grid.v1.Models/List"
 	methodModelsGet    = "/ai_grid.v1.Models/Get"
 	methodModelsCreate = "/ai_grid.v1.Models/Create"
@@ -45,8 +36,7 @@ const (
 	methodModelsListPlacementClusters = "/ai_grid.v1.Models/ListPlacementClusters"
 )
 
-// The annotations the backend keeps a subscription's and an auth policy's
-// display name and description in.
+// The annotations the backend keeps a model's display name and description in.
 const (
 	annotationDisplayName = "openshift.io/display-name"
 	annotationDescription = "openshift.io/description"
@@ -241,243 +231,6 @@ func FromV1Tenant(t *backendv1.Tenant) *aigridv1.Tenant {
 	}
 }
 
-type v1Subscriptions struct{ conn grpc.ClientConnInterface }
-
-var _ aigridv1.SubscriptionsClient = v1Subscriptions{}
-
-// ListSubscriptions lists every subscription.
-func (c v1Subscriptions) ListSubscriptions(ctx context.Context, _ *aigridv1.ListSubscriptionsRequest, opts ...grpc.CallOption) (*aigridv1.ListSubscriptionsResponse, error) {
-	resp := &backendv1.SubscriptionsListResponse{}
-	if err := c.conn.Invoke(ctx, methodSubscriptionsList, &backendv1.SubscriptionsListRequest{}, resp, opts...); err != nil {
-		return nil, err
-	}
-	out := &aigridv1.ListSubscriptionsResponse{}
-	for _, s := range resp.GetItems() {
-		out.Subscriptions = append(out.Subscriptions, FromV1Subscription(s))
-	}
-	return out, nil
-}
-
-// GetSubscription reads one subscription with its auth policies and model
-// registrations. The backend doesn't join the hub's Models, so model_refs
-// carries each registered model's name, namespace and MaaS phase: the view
-// page shows that state, and "not found" for a model MaaS doesn't have.
-func (c v1Subscriptions) GetSubscription(ctx context.Context, in *aigridv1.GetSubscriptionRequest, opts ...grpc.CallOption) (*aigridv1.GetSubscriptionResponse, error) {
-	resp := &backendv1.SubscriptionsGetResponse{}
-	if err := c.conn.Invoke(ctx, methodSubscriptionsGet, &backendv1.SubscriptionsGetRequest{Id: in.GetName()}, resp, opts...); err != nil {
-		return nil, err
-	}
-	out := &aigridv1.GetSubscriptionResponse{Subscription: FromV1Subscription(resp.GetObject())}
-	for _, p := range resp.GetAuthPolicies() {
-		out.AuthPolicies = append(out.AuthPolicies, fromV1AuthPolicy(p))
-	}
-	for _, r := range resp.GetModelRegistrations() {
-		out.ModelRegistrations = append(out.ModelRegistrations, &aigridv1.ModelRegistration{
-			Name: r.GetName(), Namespace: r.GetNamespace(), Phase: r.GetPhase(), Endpoint: r.GetEndpoint(), Conditions: fromV1Conditions(r.GetConditions()),
-		})
-		out.ModelRefs = append(out.ModelRefs, registeredModel(r))
-	}
-	return out, nil
-}
-
-// CreateSubscription creates the subscription. The backend always creates
-// <name>-policy with it, so a request without create_auth_policy is
-// Unimplemented.
-func (c v1Subscriptions) CreateSubscription(ctx context.Context, in *aigridv1.CreateSubscriptionRequest, opts ...grpc.CallOption) (*aigridv1.CreateSubscriptionResponse, error) {
-	if !in.GetCreateAuthPolicy() {
-		return nil, status.Error(codes.Unimplemented, "the backend's Subscriptions API always creates the auth policy")
-	}
-	obj := toV1Subscription(in.GetObject())
-	obj.Metadata.Annotations = nonEmpty(obj.GetMetadata().GetAnnotations())
-	resp := &backendv1.SubscriptionsCreateResponse{}
-	if err := c.conn.Invoke(ctx, methodSubscriptionsCreate, &backendv1.SubscriptionsCreateRequest{Object: obj}, resp, opts...); err != nil {
-		return nil, err
-	}
-	out := &aigridv1.CreateSubscriptionResponse{Subscription: FromV1Subscription(resp.GetObject())}
-	if p := resp.GetAuthPolicy(); p != nil {
-		out.AuthPolicy = fromV1AuthPolicy(p)
-	}
-	return out, nil
-}
-
-// UpdateSubscription replaces the spec and the display name and description,
-// with the If-Match version as metadata.version. The annotations mask
-// replaces the whole map, so the subscription is read first and its other
-// annotations are sent back unchanged; a cleared display name or description
-// is left out. If the subscription changes between the read and the update,
-// the backend refuses the stale version.
-func (c v1Subscriptions) UpdateSubscription(ctx context.Context, in *aigridv1.UpdateSubscriptionRequest, opts ...grpc.CallOption) (*aigridv1.UpdateSubscriptionResponse, error) {
-	version, err := v1Version(in.GetObject().GetResourceVersion())
-	if err != nil {
-		return nil, err
-	}
-	current := &backendv1.SubscriptionsGetResponse{}
-	if err := c.conn.Invoke(ctx, methodSubscriptionsGet, &backendv1.SubscriptionsGetRequest{Id: in.GetObject().GetName()}, current, opts...); err != nil {
-		return nil, err
-	}
-	obj := toV1Subscription(in.GetObject())
-	annotations := maps.Clone(current.GetObject().GetMetadata().GetAnnotations())
-	if annotations == nil {
-		annotations = map[string]string{}
-	}
-	maps.Copy(annotations, obj.GetMetadata().GetAnnotations())
-	obj.Metadata.Annotations = nonEmpty(annotations)
-	obj.Metadata.Version = version
-	req := &backendv1.SubscriptionsUpdateRequest{
-		Object:     obj,
-		UpdateMask: &fieldmaskpb.FieldMask{Paths: []string{"spec", "metadata.annotations"}},
-		Lock:       in.GetLock(),
-	}
-	resp := &backendv1.SubscriptionsUpdateResponse{}
-	if err := c.conn.Invoke(ctx, methodSubscriptionsUpdate, req, resp, opts...); err != nil {
-		return nil, err
-	}
-	return &aigridv1.UpdateSubscriptionResponse{Subscription: FromV1Subscription(resp.GetObject())}, nil
-}
-
-// DeleteSubscription deletes the subscription and its <name>-policy, sending
-// the If-Match version; empty skips the check in both APIs (zero in the
-// backend's).
-func (c v1Subscriptions) DeleteSubscription(ctx context.Context, in *aigridv1.DeleteSubscriptionRequest, opts ...grpc.CallOption) (*aigridv1.DeleteSubscriptionResponse, error) {
-	req := &backendv1.SubscriptionsDeleteRequest{Id: in.GetName()}
-	if rv := in.GetResourceVersion(); rv != "" {
-		v, err := v1DeleteVersion(rv)
-		if err != nil {
-			return nil, err
-		}
-		req.ResourceVersion = v
-	}
-	if err := c.conn.Invoke(ctx, methodSubscriptionsDelete, req, &backendv1.SubscriptionsDeleteResponse{}, opts...); err != nil {
-		return nil, err
-	}
-	return &aigridv1.DeleteSubscriptionResponse{}, nil
-}
-
-// toV1Subscription maps the draft's writable fields onto the backend's: the
-// organization to spec.organization.id, the display name and description to
-// annotations (both always present), and the billing rate to an object.
-func toV1Subscription(s *aigridv1.Subscription) *backendv1.Subscription {
-	tm := s.GetTokenMetadata()
-	spec := &backendv1.SubscriptionSpec{
-		Owner:             &backendv1.SubscriptionOwner{Groups: s.GetOwner().GetGroups(), Users: s.GetOwner().GetUsers()},
-		Priority:          s.GetPriority(),
-		InferencePriority: s.InferencePriority,
-		Guardrails:        toV1Guardrails(s.GetGuardrails()),
-	}
-	if tm.GetOrganizationId() != "" {
-		spec.Organization = &backendv1.SubscriptionOrganization{Id: tm.GetOrganizationId()}
-	}
-	if tm.GetCostCenter() != "" || len(tm.GetLabels()) > 0 {
-		spec.TokenMetadata = &backendv1.TokenMetadata{CostCenter: tm.GetCostCenter(), Labels: tm.GetLabels()}
-	}
-	for _, r := range s.GetModelRefs() {
-		ref := &backendv1.SubscriptionModelRef{Name: r.GetName(), Namespace: r.GetNamespace(), Unlimited: r.GetUnlimited(), Guardrails: toV1Guardrails(r.GetGuardrails())}
-		for _, l := range r.GetTokenRateLimits() {
-			ref.TokenRateLimits = append(ref.TokenRateLimits, &backendv1.TokenRateLimit{Limit: l.GetLimit(), Window: l.GetWindow()})
-		}
-		if r.BillingRatePerToken != nil {
-			ref.BillingRate = &backendv1.BillingRate{PerToken: r.GetBillingRatePerToken()}
-		}
-		spec.ModelRefs = append(spec.ModelRefs, ref)
-	}
-	return &backendv1.Subscription{
-		Id:       s.GetName(),
-		Metadata: &backendv1.Metadata{Annotations: map[string]string{annotationDisplayName: s.GetDisplayName(), annotationDescription: s.GetDescription()}},
-		Spec:     spec,
-	}
-}
-
-// FromV1Subscription maps a real Subscription onto the draft.
-func FromV1Subscription(s *backendv1.Subscription) *aigridv1.Subscription {
-	meta, spec, st := s.GetMetadata(), s.GetSpec(), s.GetStatus()
-	out := &aigridv1.Subscription{
-		Name:              s.GetId(),
-		DisplayName:       meta.GetAnnotations()[annotationDisplayName],
-		Description:       meta.GetAnnotations()[annotationDescription],
-		Priority:          spec.GetPriority(),
-		InferencePriority: spec.InferencePriority,
-		Guardrails:        fromV1Guardrails(spec.GetGuardrails()),
-		Phase:             st.GetPhase(),
-		ResourceVersion:   strconv.Itoa(int(meta.GetVersion())),
-		CreateTime:        meta.GetCreationTimestamp(),
-		DeletionTime:      meta.GetDeletionTimestamp(),
-		Conditions:        fromV1Conditions(st.GetConditions()),
-	}
-	if o := spec.GetOwner(); o != nil {
-		out.Owner = &aigridv1.Owner{Groups: o.GetGroups(), Users: o.GetUsers()}
-	}
-	org, tm := spec.GetOrganization().GetId(), spec.GetTokenMetadata()
-	if org != "" || tm != nil {
-		out.TokenMetadata = &aigridv1.TokenMetadata{OrganizationId: org, CostCenter: tm.GetCostCenter(), Labels: tm.GetLabels()}
-	}
-	for _, r := range spec.GetModelRefs() {
-		ref := &aigridv1.ModelSubscriptionRef{
-			Name: r.GetName(), Namespace: r.GetNamespace(), DisplayName: r.GetDisplayName(), Description: r.GetDescription(),
-			Unlimited: r.GetUnlimited(), Guardrails: fromV1Guardrails(r.GetGuardrails()),
-		}
-		for _, l := range r.GetTokenRateLimits() {
-			ref.TokenRateLimits = append(ref.TokenRateLimits, &aigridv1.TokenRateLimit{Limit: l.GetLimit(), Window: l.GetWindow()})
-		}
-		if b := r.GetBillingRate(); b != nil {
-			ref.BillingRatePerToken = proto.String(b.GetPerToken())
-		}
-		out.ModelRefs = append(out.ModelRefs, ref)
-	}
-	for _, r := range st.GetModelRefStatuses() {
-		out.ModelRefStatuses = append(out.ModelRefStatuses, fromV1RefStatus(r))
-	}
-	for _, t := range st.GetTokenRateLimitStatuses() {
-		out.TokenRateLimitStatuses = append(out.TokenRateLimitStatuses, &aigridv1.TokenRateLimitStatus{Ref: fromV1RefStatus(t.GetRef()), Model: t.GetModel()})
-	}
-	return out
-}
-
-func fromV1AuthPolicy(p *backendv1.AuthPolicy) *aigridv1.AuthPolicy {
-	out := &aigridv1.AuthPolicy{
-		Name:          p.GetId(),
-		DisplayName:   p.GetMetadata().GetAnnotations()[annotationDisplayName],
-		Description:   p.GetMetadata().GetAnnotations()[annotationDescription],
-		Phase:         p.GetPhase(),
-		SubjectGroups: p.GetSubjectGroups(),
-		Conditions:    fromV1Conditions(p.GetConditions()),
-	}
-	for _, r := range p.GetModelRefs() {
-		out.ModelRefs = append(out.ModelRefs, &aigridv1.AuthPolicyModelRef{Name: r.GetName(), Namespace: r.GetNamespace()})
-	}
-	return out
-}
-
-// reasonSavedToGit is the backend's reason for a status it doesn't read in git
-// mode: the change was saved to Git, and the clusters aren't asked.
-const reasonSavedToGit = "SavedToGit"
-
-// registeredModel is a model as its MaaS registration shows it: Ready, Failed
-// (Failed, Invalid or Unhealthy, with the phase as reason and the Ready
-// condition's message) or Pending. A registration the backend saved to Git
-// (no phase, and a Ready condition with reason SavedToGit) has no phase, with
-// that reason and message, so the console doesn't show it as Pending.
-func registeredModel(r *backendv1.ModelRegistration) *aigridv1.Model {
-	st := &aigridv1.ModelStatus{Phase: aigridv1.ModelPhase_MODEL_PHASE_PENDING}
-	switch r.GetPhase() {
-	case "":
-		for _, c := range r.GetConditions() {
-			if c.GetType() == "Ready" && c.GetReason() == reasonSavedToGit {
-				st = &aigridv1.ModelStatus{Reason: reasonSavedToGit, Message: c.GetMessage()}
-			}
-		}
-	case "Ready":
-		st.Phase = aigridv1.ModelPhase_MODEL_PHASE_READY
-	case "Failed", "Invalid", "Unhealthy":
-		st.Phase, st.Reason = aigridv1.ModelPhase_MODEL_PHASE_FAILED, r.GetPhase()
-		for _, c := range r.GetConditions() {
-			if c.GetType() == "Ready" {
-				st.Message = c.GetMessage()
-			}
-		}
-	}
-	return &aigridv1.Model{Name: r.GetName(), Metadata: &aigridv1.ObjectMeta{Namespace: r.GetNamespace()}, Status: st}
-}
-
 func fromV1Conditions(cs []*backendv1.Condition) []*aigridv1.Condition {
 	var out []*aigridv1.Condition
 	for _, c := range cs {
@@ -485,37 +238,6 @@ func fromV1Conditions(cs []*backendv1.Condition) []*aigridv1.Condition {
 			Type: c.GetType(), Status: aigridv1.ConditionStatus(c.GetStatus()), LastTransitionTime: c.GetLastTransitionTime(),
 			Reason: c.Reason, Message: c.Message,
 		})
-	}
-	return out
-}
-
-func fromV1RefStatus(r *backendv1.ResourceRefStatus) *aigridv1.ResourceRefStatus {
-	return &aigridv1.ResourceRefStatus{Name: r.GetName(), Namespace: r.GetNamespace(), Ready: r.GetReady(), Reason: r.GetReason(), Message: r.GetMessage()}
-}
-
-func toV1Guardrails(gs []*aigridv1.GuardrailAttachment) []*backendv1.GuardrailAttachment {
-	var out []*backendv1.GuardrailAttachment
-	for _, g := range gs {
-		out = append(out, &backendv1.GuardrailAttachment{RefName: g.GetRefName(), Checks: g.GetChecks()})
-	}
-	return out
-}
-
-func fromV1Guardrails(gs []*backendv1.GuardrailAttachment) []*aigridv1.GuardrailAttachment {
-	var out []*aigridv1.GuardrailAttachment
-	for _, g := range gs {
-		out = append(out, &aigridv1.GuardrailAttachment{RefName: g.GetRefName(), Checks: g.GetChecks()})
-	}
-	return out
-}
-
-// nonEmpty drops empty values: a new subscription has no annotation to clear.
-func nonEmpty(m map[string]string) map[string]string {
-	out := map[string]string{}
-	for k, v := range m {
-		if v != "" {
-			out[k] = v
-		}
 	}
 	return out
 }

@@ -49,7 +49,7 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("fixtures in %s: %w", *fixturesDir, err)
 	}
-	logger.Info("fixtures loaded", "dir", *fixturesDir, "clusters", len(fx.Clusters), "tenants", len(fx.Tenants), "tenantsUnavailable", fx.TenantsUnavailable != "", "latency", fx.Latency.Duration(), "scenarios", len(fx.Scenarios), "speed", fx.Speed, "subscriptions", len(fx.Subscriptions))
+	logger.Info("fixtures loaded", "dir", *fixturesDir, "clusters", len(fx.Clusters), "tenants", len(fx.Tenants), "tenantsUnavailable", fx.TenantsUnavailable != "", "latency", fx.Latency.Duration(), "scenarios", len(fx.Scenarios), "speed", fx.Speed)
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
