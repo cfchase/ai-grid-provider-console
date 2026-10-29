@@ -8,7 +8,7 @@ const backendPort = process.env.E2E_BACKEND_PORT ?? '9090';
 const hubPort = process.env.E2E_HUB_PORT ?? '9091';
 const origin = `http://127.0.0.1:${port}`;
 // The second stack, for the pages that read the backend's own API over Connect (the Clusters
-// pages and the map), which the console's fake doesn't serve: the backend at .backend-api-version
+// pages, the map and the Subscriptions pages), which the console's fake doesn't serve: the backend at .backend-api-version
 // on its own fake hub and Keycloak, PoC preset (hack/backend-fakes.sh), its BFF and its bundle,
 // on ports offset from the first stack's so both run side by side.
 const fakesPort = process.env.E2E_FAKES_FRONTEND_PORT ?? '9200';
@@ -17,7 +17,7 @@ const fakesBackendPort = Number(process.env.E2E_FAKES_BACKEND_PORT ?? '9290');
 const fakesOrigin = `http://127.0.0.1:${fakesPort}`;
 const browser = { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } };
 const membership = 'cluster-membership.spec.ts';
-const onBackendFakes = ['clusters.spec.ts', 'grid.spec.ts'];
+const onBackendFakes = ['clusters.spec.ts', 'grid.spec.ts', 'subscriptions.spec.ts'];
 
 export default defineConfig({
   testDir: './e2e',
