@@ -29,8 +29,8 @@ Each image is `repository:tag`, `repository@digest`, or `repository:tag@digest` 
 `servingOptions` is the list the Deploy model wizard offers and the backend checks models against
 (`Models/ListServingOptions`). It's one list for every cluster: the chart renders it into the
 ConfigMap `<fullname>-serving-options`, which the backend reads at start, and a changed list
-restarts the pod. The defaults are what OpenShift AI 3.6 installs: its supported single-node
-accelerator presets and `default-profile`. `values.yaml` cites the sources.
+restarts the pod. The defaults are what OpenShift AI 3.6 installs: every supported accelerator
+preset and `default-profile`. `values.yaml` cites the sources.
 
 To offer a hardware profile you created on the clusters, such as one with an NVIDIA GPU, list it
 with the default one:
@@ -62,5 +62,6 @@ Two limits:
   release. A preset the upgrade didn't change keeps its older name: give that server its own
   `release`. Models keep the preset they were made with.
 
-The default list leaves out the NVIDIA prefill/decode and multi-node presets: they need prefill or
-worker pods the wizard doesn't set up. `values.yaml` lists them, commented out.
+The NVIDIA prefill/decode and multi-node presets add prefill or worker pods that need a topology
+the wizard doesn't set: it gives only the main pod its resources, so those pods get no GPUs. Their
+descriptions say so. Remove them from the list to stop offering them.

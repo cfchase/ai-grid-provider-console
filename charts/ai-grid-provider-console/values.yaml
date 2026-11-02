@@ -124,13 +124,13 @@ backend:
 # the backend mounts; the backend doesn't read the clusters. Override any part to offer your own,
 # such as a GPU HardwareProfile you created on the clusters. The defaults are what OpenShift AI 3.6
 # installs:
-#   - modelServers: the supported single-node accelerator presets (LLMInferenceServiceConfig
-#     labelled opendatahub.io/config-type=accelerator in the OpenShift AI namespace), from
+#   - modelServers: every supported accelerator preset (LLMInferenceServiceConfig labelled
+#     opendatahub.io/config-type=accelerator in the OpenShift AI namespace), from
 #     red-hat-data-services/kserve rhoai-3.6 at 71b7da36a3f8, config/overlays/odh/accelerators/.
-#     Left out: the unsupported "-fast-N" previews (opendatahub.io/support-status: unsupported),
-#     and the three NVIDIA prefill/decode and multi-node presets, listed commented out below: they
-#     add prefill or worker pods that need a topology (prefill replicas, parallelism) the wizard
-#     doesn't set, so it would give only the main container its GPUs.
+#     The unsupported "-fast-N" previews (opendatahub.io/support-status: unsupported) are left out.
+#     The three NVIDIA prefill/decode and multi-node presets add prefill or worker pods that need a
+#     topology (prefill replicas, parallelism) the wizard doesn't set: it gives only the main
+#     container its resources, so those pods get no GPUs. Their descriptions say so.
 #   - hardwareProfiles: default-profile, which the DSCInitialization creates
 #     (opendatahub-operator internal/controller/dscinitialization/hardwareprofile.go).
 # Checked on demo1's spokes (site-a and site-b, one NVIDIA GPU each) on 2026-11-02: both have the
@@ -180,19 +180,25 @@ servingOptions:
       displayName: vLLM IBM Spyre, IBM Z
       description: vLLM with IBM Spyre accelerators on s390x nodes.
       accelerators: [ibm.com/spyre_vf]
-    # Shipped by OpenShift AI but needing a topology the wizard doesn't set (see above):
-    # - name: kserve-config-llm-single-node-pd-template-nvidia-cuda
-    #   displayName: vLLM NVIDIA GPU, prefill/decode
-    #   description: vLLM with NVIDIA CUDA GPUs, on one node, with prefill and decode split.
-    #   accelerators: [nvidia.com/gpu]
-    # - name: kserve-config-llm-multi-node-template-nvidia-cuda
-    #   displayName: vLLM NVIDIA GPU, multi-node
-    #   description: vLLM with NVIDIA CUDA GPUs, data parallel across nodes.
-    #   accelerators: [nvidia.com/gpu]
-    # - name: kserve-config-llm-multi-node-pd-template-nvidia-cuda
-    #   displayName: vLLM NVIDIA GPU, multi-node prefill/decode
-    #   description: vLLM with NVIDIA CUDA GPUs, across nodes, with prefill and decode split.
-    #   accelerators: [nvidia.com/gpu]
+    # These three need a topology the wizard doesn't set (see above).
+    - name: kserve-config-llm-single-node-pd-template-nvidia-cuda
+      displayName: vLLM NVIDIA GPU, prefill/decode
+      description: >-
+        vLLM with NVIDIA CUDA GPUs, on one node, with prefill and decode split. The wizard sets
+        only the decode pod's resources, so the prefill pods get no GPUs.
+      accelerators: [nvidia.com/gpu]
+    - name: kserve-config-llm-multi-node-template-nvidia-cuda
+      displayName: vLLM NVIDIA GPU, multi-node
+      description: >-
+        vLLM with NVIDIA CUDA GPUs, data parallel across nodes. The wizard sets only the main
+        pod's resources and no parallelism, so the worker pods get no GPUs.
+      accelerators: [nvidia.com/gpu]
+    - name: kserve-config-llm-multi-node-pd-template-nvidia-cuda
+      displayName: vLLM NVIDIA GPU, multi-node prefill/decode
+      description: >-
+        vLLM with NVIDIA CUDA GPUs, across nodes, with prefill and decode split. The wizard sets
+        only the main pod's resources and no parallelism, so the other pods get no GPUs.
+      accelerators: [nvidia.com/gpu]
   # A model names a profile by name, so names must be unique. resources: the profile's
   # spec.identifiers, which tell the wizard whether it gives the model GPUs.
   hardwareProfiles:

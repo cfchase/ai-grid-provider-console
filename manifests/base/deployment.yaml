@@ -19,7 +19,7 @@ spec:
       annotations:
         # The backend reads the serving options once at start: a changed list restarts the pod.
         # The chart's value; hack/check-chart.sh keeps the two the same.
-        checksum/serving-options: 92af74cf179a13d480064f29af773cea699602e99e316f18c31ceee18af41c2d
+        checksum/serving-options: 4285f06754b6f6aba0dc7384f5f6c7be57aafc40bcc6d79339a5bf7b759aa19f
     spec:
       serviceAccountName: ai-grid-provider-console
       securityContext:

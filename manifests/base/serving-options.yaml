@@ -51,3 +51,23 @@ data:
       description: vLLM with IBM Spyre accelerators on s390x nodes.
       displayName: vLLM IBM Spyre, IBM Z
       name: v3-6-0-kserve-config-llm-template-ibm-spyre-s390x
+    - accelerators:
+      - nvidia.com/gpu
+      description: vLLM with NVIDIA CUDA GPUs, on one node, with prefill and decode split.
+        The wizard sets only the decode pod's resources, so the prefill pods get no GPUs.
+      displayName: vLLM NVIDIA GPU, prefill/decode
+      name: v3-6-0-kserve-config-llm-single-node-pd-template-nvidia-cuda
+    - accelerators:
+      - nvidia.com/gpu
+      description: vLLM with NVIDIA CUDA GPUs, data parallel across nodes. The wizard
+        sets only the main pod's resources and no parallelism, so the worker pods get
+        no GPUs.
+      displayName: vLLM NVIDIA GPU, multi-node
+      name: v3-6-0-kserve-config-llm-multi-node-template-nvidia-cuda
+    - accelerators:
+      - nvidia.com/gpu
+      description: vLLM with NVIDIA CUDA GPUs, across nodes, with prefill and decode split.
+        The wizard sets only the main pod's resources and no parallelism, so the other
+        pods get no GPUs.
+      displayName: vLLM NVIDIA GPU, multi-node prefill/decode
+      name: v3-6-0-kserve-config-llm-multi-node-pd-template-nvidia-cuda
