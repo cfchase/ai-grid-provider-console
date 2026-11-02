@@ -23,3 +23,44 @@ Each image is `repository:tag`, `repository@digest`, or `repository:tag@digest` 
   values.yaml", before `helm package`).
 - **Proxy** (`images.authProxy`): `quay.io/opendatahub/odh-kube-auth-proxy:latest`; the kind test
   pins a digest.
+
+## Model servers and hardware profiles
+
+`servingOptions` is the list the Deploy model wizard offers and the backend checks models against
+(`Models/ListServingOptions`). It's one list for every cluster: the chart renders it into the
+ConfigMap `<fullname>-serving-options`, which the backend reads at start, and a changed list
+restarts the pod. The defaults are what OpenShift AI 3.6 installs: its supported single-node
+accelerator presets and `default-profile`. `values.yaml` cites the sources.
+
+To offer a hardware profile you created on the clusters, such as one with an NVIDIA GPU, list it
+with the default one:
+
+```yaml
+servingOptions:
+  hardwareProfiles:
+    - name: default-profile
+      namespace: redhat-ods-applications
+      displayName: Default profile
+      description: 2 CPUs and 4 GiB of memory.
+      resources: [cpu, memory]
+    - name: nvidia-gpu
+      namespace: redhat-ods-applications
+      displayName: NVIDIA GPU
+      description: 4 CPUs, 16 GiB of memory and one NVIDIA GPU.
+      resources: [cpu, memory, nvidia.com/gpu]
+```
+
+A list value replaces the whole default list, so repeat the entries you keep.
+
+Two limits:
+
+- OpenShift AI installs on each cluster only the presets its nodes can run. A model that names a GPU
+  preset fails on a cluster without that accelerator, and its status says so.
+- Preset names carry the OpenShift AI release (`v3-6-0-...`). After an OpenShift AI upgrade, list the
+  presets on the clusters (`oc get llminferenceserviceconfigs -n redhat-ods-applications -l
+  opendatahub.io/config-type=accelerator`) and set `servingOptions.openshiftAIRelease` to the new
+  release. A preset the upgrade didn't change keeps its older name: give that server its own
+  `release`. Models keep the preset they were made with.
+
+The default list leaves out the NVIDIA prefill/decode and multi-node presets: they need prefill or
+worker pods the wizard doesn't set up. `values.yaml` lists them, commented out.

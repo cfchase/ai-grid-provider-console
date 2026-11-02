@@ -16,6 +16,10 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: ai-grid-provider-console
+      annotations:
+        # The backend reads the serving options once at start: a changed list restarts the pod.
+        # The chart's value; hack/check-chart.sh keeps the two the same.
+        checksum/serving-options: 92af74cf179a13d480064f29af773cea699602e99e316f18c31ceee18af41c2d
     spec:
       serviceAccountName: ai-grid-provider-console
       securityContext:
@@ -216,6 +220,13 @@ spec:
                 secretKeyRef:
                   name: ai-grid-backend-keycloak
                   key: password
+            # The model servers and hardware profiles the wizard offers (serving-options.yaml).
+            - name: AI_GRID_SERVING_OPTIONS_FILE
+              value: /etc/ai-grid/serving-options/serving-options.yaml
+          volumeMounts:
+            - name: serving-options
+              mountPath: /etc/ai-grid/serving-options
+              readOnly: true
           resources:
             requests:
               cpu: 50m
@@ -235,3 +246,6 @@ spec:
           emptyDir:
             medium: Memory
             sizeLimit: 10Mi
+        - name: serving-options
+          configMap:
+            name: ai-grid-provider-console-serving-options

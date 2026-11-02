@@ -64,6 +64,23 @@ for url in https://github.com/example/catalog.git https://git.example.com:8443/t
     exit 1
   }
 done
+# servingOptions: model servers get the OpenShift AI release as their prefix, as OpenShift AI names
+# its presets; the release must be major.minor.patch.
+served="$(helm template console "${CHART}" -n ai-grid --set-string servingOptions.openshiftAIRelease=3.7.1 |
+  yq 'select(.kind == "ConfigMap" and .metadata.name == "ai-grid-provider-console-serving-options")
+    | .data."serving-options.yaml"' | yq '.modelServers[0].name')"
+[[ "${served}" == v3-7-1-kserve-config-llm-template-cpu ]] || {
+  echo "check-chart: servingOptions.openshiftAIRelease=3.7.1 names the CPU preset '${served}'" >&2
+  exit 1
+}
+refused "servingOptions.openshiftAIRelease=3.6" --set-string servingOptions.openshiftAIRelease=3.6
+refused "a hardware profile without a namespace" --set 'servingOptions.hardwareProfiles[0].name=gpu'
+# The backend stops on a name listed twice, so the chart refuses it at render.
+if helm template console "${CHART}" -n ai-grid --set 'servingOptions.modelServers[0].name=a' \
+  --set 'servingOptions.modelServers[1].name=a' >/dev/null 2>&1; then
+  echo "check-chart: servingOptions lists a model server twice and still renders" >&2
+  exit 1
+fi
 # The BFF reads the log level case-insensitively (slog.Level), so the schema takes both spellings.
 helm template console "${CHART}" -n ai-grid --set console.logLevel=INFO >/dev/null
 refused "console.logLevel=verbose" --set console.logLevel=verbose

@@ -1,0 +1,53 @@
+# The model servers and hardware profiles the backend offers: the chart's default servingOptions,
+# rendered (charts/ai-grid-provider-console/values.yaml has the sources). hack/check-chart.sh keeps
+# the two the same: change the chart's values, then re-render this file from them.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ai-grid-provider-console-serving-options
+  namespace: ai-grid
+data:
+  serving-options.yaml: |
+    hardwareProfiles:
+    - description: 2 CPUs and 4 GiB of memory.
+      displayName: Default profile
+      name: default-profile
+      namespace: redhat-ods-applications
+      resources:
+      - cpu
+      - memory
+    modelServers:
+    - accelerators: []
+      description: vLLM on x86_64 CPU-only nodes.
+      displayName: vLLM CPU
+      name: v3-6-0-kserve-config-llm-template-cpu
+    - accelerators:
+      - nvidia.com/gpu
+      description: vLLM with NVIDIA CUDA GPUs, on one node.
+      displayName: vLLM NVIDIA GPU
+      name: v3-6-0-kserve-config-llm-single-node-template-nvidia-cuda
+    - accelerators:
+      - amd.com/gpu
+      description: vLLM with AMD ROCm GPUs.
+      displayName: vLLM AMD GPU
+      name: v3-6-0-kserve-config-llm-template-amd-rocm
+    - accelerators:
+      - habana.ai/gaudi
+      description: vLLM with Intel Gaudi accelerators.
+      displayName: vLLM Intel Gaudi
+      name: v3-6-0-kserve-config-llm-template-intel-gaudi
+    - accelerators:
+      - ibm.com/spyre_pf
+      description: vLLM with IBM Spyre accelerators on x86 nodes.
+      displayName: vLLM IBM Spyre, x86
+      name: v3-6-0-kserve-config-llm-template-ibm-spyre-x86
+    - accelerators:
+      - ibm.com/spyre_pf
+      description: vLLM with IBM Spyre accelerators on ppc64le nodes.
+      displayName: vLLM IBM Spyre, Power
+      name: v3-6-0-kserve-config-llm-template-ibm-spyre-ppc64le
+    - accelerators:
+      - ibm.com/spyre_vf
+      description: vLLM with IBM Spyre accelerators on s390x nodes.
+      displayName: vLLM IBM Spyre, IBM Z
+      name: v3-6-0-kserve-config-llm-template-ibm-spyre-s390x

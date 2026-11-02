@@ -103,6 +103,45 @@
         "resources": { "$ref": "#/definitions/resources" }
       }
     },
+    "servingOptions": {
+      "description": "Model servers and hardware profiles the backend offers (Models/ListServingOptions).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["openshiftAIRelease", "modelServers", "hardwareProfiles"],
+      "properties": {
+        "openshiftAIRelease": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+        "modelServers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name"],
+            "properties": {
+              "name": { "$ref": "#/definitions/objectName" },
+              "release": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+              "displayName": { "type": "string" },
+              "description": { "type": "string" },
+              "accelerators": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+            }
+          }
+        },
+        "hardwareProfiles": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "namespace"],
+            "properties": {
+              "name": { "$ref": "#/definitions/objectName" },
+              "namespace": { "type": "string", "pattern": "^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$" },
+              "displayName": { "type": "string" },
+              "description": { "type": "string" },
+              "resources": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+            }
+          }
+        }
+      }
+    },
     "authProxy": {
       "type": "object",
       "additionalProperties": false,
@@ -112,6 +151,12 @@
     }
   },
   "definitions": {
+    "objectName": {
+      "description": "A Kubernetes object name (DNS-1123 subdomain).",
+      "type": "string",
+      "maxLength": 253,
+      "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$"
+    },
     "image": {
       "description": "repository:tag, repository@digest, or repository:tag@digest when both are set.",
       "type": "object",

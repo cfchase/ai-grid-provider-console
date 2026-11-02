@@ -119,6 +119,89 @@ backend:
     requests: { cpu: 50m, memory: 64Mi }
     limits: { memory: 256Mi }
 
+# The model servers and hardware profiles the Deploy model wizard offers, and the backend checks a
+# model against (Models/ListServingOptions). One list for every cluster, rendered into a ConfigMap
+# the backend mounts; the backend doesn't read the clusters. Override any part to offer your own,
+# such as a GPU HardwareProfile you created on the clusters. The defaults are what OpenShift AI 3.6
+# installs:
+#   - modelServers: the supported single-node accelerator presets (LLMInferenceServiceConfig
+#     labelled opendatahub.io/config-type=accelerator in the OpenShift AI namespace), from
+#     red-hat-data-services/kserve rhoai-3.6 at 71b7da36a3f8, config/overlays/odh/accelerators/.
+#     Left out: the unsupported "-fast-N" previews (opendatahub.io/support-status: unsupported),
+#     and the three NVIDIA prefill/decode and multi-node presets, listed commented out below: they
+#     add prefill or worker pods that need a topology (prefill replicas, parallelism) the wizard
+#     doesn't set, so it would give only the main container its GPUs.
+#   - hardwareProfiles: default-profile, which the DSCInitialization creates
+#     (opendatahub-operator internal/controller/dscinitialization/hardwareprofile.go).
+# Checked on demo1's spokes (site-a and site-b, one NVIDIA GPU each) on 2026-11-02: both have the
+# CPU and the four NVIDIA presets and default-profile. A cluster without GPUs has only the CPU one.
+# Two limits:
+#   - OpenShift AI installs on each cluster only the presets its nodes can run (kserve-module
+#     hardware_filter.go): CPU everywhere, a GPU preset only where nodes have that accelerator. A
+#     model placed on a cluster without its preset fails there, and its status says so.
+#   - Preset names carry the OpenShift AI release (v3-6-0-...). After an OpenShift AI upgrade, list
+#     the presets on the clusters (oc get llminferenceserviceconfigs -n redhat-ods-applications
+#     -l opendatahub.io/config-type=accelerator) and set openshiftAIRelease to the new release. A
+#     preset the upgrade didn't change keeps its older name (kserve-module differential
+#     versioning): give that server its own release. Models keep the preset they were made with.
+servingOptions:
+  # The OpenShift AI release on the clusters. Each model server's name is prefixed with it, as
+  # OpenShift AI names its presets: 3.6.0 gives v3-6-0-<name>.
+  openshiftAIRelease: "3.6.0"
+  # name: the preset's name without the release prefix. release: optional, the release in this
+  # preset's name when it differs from openshiftAIRelease. accelerators: the node resources it
+  # needs (its opendatahub.io/recommended-accelerators); empty runs on CPUs.
+  modelServers:
+    - name: kserve-config-llm-template-cpu
+      displayName: vLLM CPU
+      description: vLLM on x86_64 CPU-only nodes.
+      accelerators: []
+    - name: kserve-config-llm-single-node-template-nvidia-cuda
+      displayName: vLLM NVIDIA GPU
+      description: vLLM with NVIDIA CUDA GPUs, on one node.
+      accelerators: [nvidia.com/gpu]
+    - name: kserve-config-llm-template-amd-rocm
+      displayName: vLLM AMD GPU
+      description: vLLM with AMD ROCm GPUs.
+      accelerators: [amd.com/gpu]
+    - name: kserve-config-llm-template-intel-gaudi
+      displayName: vLLM Intel Gaudi
+      description: vLLM with Intel Gaudi accelerators.
+      accelerators: [habana.ai/gaudi]
+    - name: kserve-config-llm-template-ibm-spyre-x86
+      displayName: vLLM IBM Spyre, x86
+      description: vLLM with IBM Spyre accelerators on x86 nodes.
+      accelerators: [ibm.com/spyre_pf]
+    - name: kserve-config-llm-template-ibm-spyre-ppc64le
+      displayName: vLLM IBM Spyre, Power
+      description: vLLM with IBM Spyre accelerators on ppc64le nodes.
+      accelerators: [ibm.com/spyre_pf]
+    - name: kserve-config-llm-template-ibm-spyre-s390x
+      displayName: vLLM IBM Spyre, IBM Z
+      description: vLLM with IBM Spyre accelerators on s390x nodes.
+      accelerators: [ibm.com/spyre_vf]
+    # Shipped by OpenShift AI but needing a topology the wizard doesn't set (see above):
+    # - name: kserve-config-llm-single-node-pd-template-nvidia-cuda
+    #   displayName: vLLM NVIDIA GPU, prefill/decode
+    #   description: vLLM with NVIDIA CUDA GPUs, on one node, with prefill and decode split.
+    #   accelerators: [nvidia.com/gpu]
+    # - name: kserve-config-llm-multi-node-template-nvidia-cuda
+    #   displayName: vLLM NVIDIA GPU, multi-node
+    #   description: vLLM with NVIDIA CUDA GPUs, data parallel across nodes.
+    #   accelerators: [nvidia.com/gpu]
+    # - name: kserve-config-llm-multi-node-pd-template-nvidia-cuda
+    #   displayName: vLLM NVIDIA GPU, multi-node prefill/decode
+    #   description: vLLM with NVIDIA CUDA GPUs, across nodes, with prefill and decode split.
+    #   accelerators: [nvidia.com/gpu]
+  # A model names a profile by name, so names must be unique. resources: the profile's
+  # spec.identifiers, which tell the wizard whether it gives the model GPUs.
+  hardwareProfiles:
+    - name: default-profile
+      namespace: redhat-ods-applications
+      displayName: Default profile
+      description: 2 CPUs and 4 GiB of memory.
+      resources: [cpu, memory]
+
 authProxy:
   resources:
     requests: { cpu: 50m, memory: 64Mi }

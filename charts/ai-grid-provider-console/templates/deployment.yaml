@@ -22,6 +22,9 @@ spec:
       # chart release.
       labels:
         {{- include "console.selectorLabels" . | nindent 8 }}
+      annotations:
+        # The backend reads the serving options once at start: a changed list restarts the pod.
+        checksum/serving-options: {{ include "console.servingOptions" . | sha256sum }}
     spec:
       serviceAccountName: {{ include "console.serviceAccountName" . }}
       {{- with .Values.imagePullSecrets }}
@@ -213,6 +216,9 @@ spec:
                   name: {{ $kc }}
                   key: {{ index . 1 }}
             {{- end }}
+            # The model servers and hardware profiles the wizard offers (values servingOptions).
+            - name: AI_GRID_SERVING_OPTIONS_FILE
+              value: /etc/ai-grid/serving-options/serving-options.yaml
             {{- with .Values.backend.git }}
             {{- if .url }}
             # Git mode: Models and Subscriptions are commits to this repository, which Argo CD
@@ -234,12 +240,15 @@ spec:
             {{- end }}
             {{- end }}
             {{- end }}
-          {{- if .Values.backend.git.url }}
           volumeMounts:
+            - name: serving-options
+              mountPath: /etc/ai-grid/serving-options
+              readOnly: true
+            {{- if .Values.backend.git.url }}
             - name: git-token
               mountPath: /var/run/secrets/ai-grid-git
               readOnly: true
-          {{- end }}
+            {{- end }}
           resources:
             {{- toYaml .Values.backend.resources | nindent 12 }}
           securityContext:
@@ -255,6 +264,9 @@ spec:
           emptyDir:
             medium: Memory
             sizeLimit: 10Mi
+        - name: serving-options
+          configMap:
+            name: {{ include "console.fullname" . }}-serving-options
         {{- if .Values.backend.git.url }}
         # Required: in git mode the backend can't push without the token, so the pod waits for the
         # Secret instead of starting a backend that fails every write.

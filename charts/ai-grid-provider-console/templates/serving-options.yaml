@@ -1,0 +1,15 @@
+{{- /*
+The model servers and hardware profiles the backend offers (Models/ListServingOptions), from
+.Values.servingOptions. Model server names get the OpenShift AI release prefix here, so the backend
+reads full preset names.
+*/ -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "console.fullname" . }}-serving-options
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "console.labels" . | nindent 4 }}
+data:
+  serving-options.yaml: |
+    {{- include "console.servingOptions" . | nindent 4 }}
