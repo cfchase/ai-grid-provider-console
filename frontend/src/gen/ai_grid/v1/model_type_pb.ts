@@ -145,13 +145,17 @@ export type ModelSpec = Message<"ai_grid.v1.ModelSpec"> & {
    * OpenShift AI HardwareProfile the model runs with. Optional. The backend
    * writes it as the deployment's annotations
    * opendatahub.io/hardware-profile-name and
-   * opendatahub.io/hardware-profile-namespace, and OpenShift AI's webhook on
-   * each cluster sets the container's resources, node selector, tolerations
-   * and Kueue queue from the profile. With a profile, spec.main.requests and
-   * spec.main.limits must be empty, or the call is InvalidArgument: the
-   * webhook would replace them. When the backend has a serving options list
-   * (Models/ListServingOptions), the profile must be on it, or already be
-   * the model's, and an empty namespace takes the list's.
+   * opendatahub.io/hardware-profile-namespace. OpenShift AI's webhook on
+   * each cluster then sets the node selector, tolerations and Kueue queue
+   * from the profile, and fills in only the resources spec.main doesn't set
+   * (requests and limits at the identifier's default count). As the OpenShift
+   * AI dashboard does, a client sends spec.main.requests and spec.main.limits
+   * with the profile, starting from its defaults. When the backend has a
+   * serving options list (Models/ListServingOptions), the profile must be on
+   * it, or already be the model's, and an empty namespace takes the list's;
+   * a listed profile's resources in spec.main.requests and spec.main.limits
+   * must be within its min_count and max_count, or the call is
+   * InvalidArgument; a value the model already has isn't checked again.
    *
    * @generated from field: ai_grid.v1.ModelHardwareProfile hardware_profile = 10;
    */

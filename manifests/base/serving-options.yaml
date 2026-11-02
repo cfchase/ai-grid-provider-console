@@ -9,13 +9,21 @@ metadata:
 data:
   serving-options.yaml: |
     hardwareProfiles:
-    - description: 2 CPUs and 4 GiB of memory.
+    - description: Starts at 2 CPUs and 4 GiB of memory.
       displayName: Default profile
+      identifiers:
+      - defaultCount: "2"
+        displayName: CPU
+        identifier: cpu
+        maxCount: "4"
+        minCount: "1"
+      - defaultCount: 4Gi
+        displayName: Memory
+        identifier: memory
+        maxCount: 8Gi
+        minCount: 2Gi
       name: default-profile
       namespace: redhat-ods-applications
-      resources:
-      - cpu
-      - memory
     modelServers:
     - accelerators: []
       description: vLLM on x86_64 CPU-only nodes.

@@ -12,7 +12,7 @@ import { ServiceError } from '../api/ConsoleService';
 import { MockConsoleService } from '../api/MockConsoleService';
 import { create as createMessage } from '@bufbuild/protobuf';
 import { ModelHardwareProfileSchema, ModelPhase } from '../gen/ai_grid/v1/model_type_pb';
-import { ModelServerOptionSchema } from '../gen/ai_grid/v1/models_service_pb';
+import { HardwareProfileOptionSchema, ModelServerOptionSchema } from '../gen/ai_grid/v1/models_service_pb';
 import { modelObject, modelsOf, subscriptionUsing } from './connectModels';
 import { deferred, renderAt, findVisible } from './render';
 // The routes load these pages lazily; loaded here, their import does not run inside a test's findBy.
@@ -940,7 +940,7 @@ describe('the model server', () => {
     expect(create.mock.calls[0][0].object?.spec?.main?.image).toBe('');
   });
 
-  it('shows a model’s hardware profile, and on its edit that the profile sets its resources', async () => {
+  it('shows a model’s hardware profile, and on its edit the resources it was saved with', async () => {
     const service = new MockConsoleService();
     const granite = modelsOf(service).find('granite-3-8b');
     granite.spec!.hardwareProfile = createMessage(ModelHardwareProfileSchema, {
@@ -963,15 +963,23 @@ describe('the model server', () => {
       expect(await screen.findByRole('textbox', { name })).toHaveValue('Set by the hardware profile');
     }
     expect(screen.getByRole('textbox', { name: 'Hardware profile' })).toHaveValue('Default profile');
-    // Review lists the profile, and no CPU, memory or GPU count it doesn't set.
+    // Review says the same for a model deployed with a profile and no resources of its own, not "0".
     await user.click(
       within(screen.getByRole('navigation', { name: 'Wizard steps' })).getByRole('button', { name: 'Review' }),
     );
     const review = await screen.findByTestId('model-review');
     expect(review).toHaveTextContent('Default profile');
-    for (const term of ['CPU', 'Memory', 'GPUs']) {
-      expect(within(review).queryByText(term, { exact: true })).not.toBeInTheDocument();
-    }
+    expect(review).toHaveTextContent('GPUsSet by the hardware profile');
+    cleanup();
+    // A model saved with the profile's resources shows them.
+    granite.spec!.main!.requests = { cpu: '2', memory: '8Gi' };
+    renderAt('/models/granite-3-8b/edit', service);
+    await user.click(
+      within(await screen.findByRole('navigation', { name: 'Wizard steps' })).getByRole('button', {
+        name: 'Deployment',
+      }),
+    );
+    expect(await screen.findByRole('textbox', { name: 'Memory' })).toHaveValue('8Gi');
   });
 
   it('reads back an AMD model’s GPU count', async () => {
@@ -1031,24 +1039,110 @@ describe('the model server', () => {
     });
   });
 
-  it('runs on a hardware profile: no resource fields, and the profile instead of requests', async () => {
+  it('starts from a hardware profile’s defaults, keeps them editable within its range, and sends them', async () => {
+    const user = userEvent.setup();
+    const create = await openDeployment(user);
+    await chooseServer(user);
+    const memory = screen.getByRole('textbox', { name: 'Memory' });
+    await user.clear(memory);
+    await user.type(memory, '3Gi');
+    const profile = screen.getByRole('combobox', { name: 'Hardware profile' });
+    expect(profile).toHaveValue('');
+    // Choosing the profile fills CPU and memory from its defaults, as the OpenShift AI dashboard does.
+    await user.selectOptions(profile, 'Default profile');
+    expect(profile).toHaveAccessibleDescription(/Starts at 2 CPUs and 4 GiB of memory\. Its defaults fill/);
+    expect(screen.getByRole('textbox', { name: 'CPU' })).toHaveValue('2');
+    expect(memory).toHaveValue('4Gi');
+    expect(memory).toHaveAccessibleDescription('From 2Gi to 8Gi.');
+    // Outside the profile's range is refused; within it is fine.
+    await user.clear(memory);
+    await user.type(memory, '16Gi');
+    await user.tab();
+    expect(memory).toHaveAccessibleDescription(/^Enter a value from 2Gi to 8Gi\./);
+    expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled();
+    await user.clear(memory);
+    await user.type(memory, '8Gi');
+    const review = await toReview(user);
+    expect(review).toHaveTextContent('Hardware profileDefault profile');
+    expect(review).toHaveTextContent('Memory8Gi');
+    await waitFor(() => expect(create).toHaveBeenCalled());
+    const spec = create.mock.calls[0][0].object?.spec;
+    expect(spec?.hardwareProfile).toMatchObject({ name: 'default-profile' });
+    // Requests and limits both, as the profile's webhook and the dashboard set them.
+    expect(spec?.main?.requests).toEqual({ cpu: '2', memory: '8Gi' });
+    expect(spec?.main?.limits).toEqual({ cpu: '2', memory: '8Gi' });
+  });
+
+  it('drops the profile’s range and the limits when the profile is set back to None', async () => {
     const user = userEvent.setup();
     const create = await openDeployment(user);
     await chooseServer(user);
     const profile = screen.getByRole('combobox', { name: 'Hardware profile' });
-    expect(profile).toHaveValue('');
     await user.selectOptions(profile, 'Default profile');
-    expect(profile).toHaveAccessibleDescription(/2 CPUs and 4 GiB of memory\. The profile sets/);
-    for (const name of ['CPU', 'Memory']) {
-      expect(screen.queryByRole('textbox', { name })).not.toBeInTheDocument();
-    }
-    const review = await toReview(user);
-    expect(review).toHaveTextContent('Hardware profileDefault profile');
-    expect(review).not.toHaveTextContent('Memory');
+    await user.selectOptions(profile, 'None');
+    const memory = screen.getByRole('textbox', { name: 'Memory' });
+    expect(memory).toHaveAccessibleDescription('For example, 4Gi or 512Mi.');
+    await user.clear(memory);
+    await user.type(memory, '16Gi');
+    await toReview(user);
     await waitFor(() => expect(create).toHaveBeenCalled());
     const spec = create.mock.calls[0][0].object?.spec;
-    expect(spec?.hardwareProfile).toMatchObject({ name: 'default-profile' });
-    expect(spec?.main?.requests).toEqual({});
+    expect(spec?.hardwareProfile).toBeUndefined();
+    expect(spec?.main?.requests).toMatchObject({ memory: '16Gi' });
+    expect(spec?.main?.limits).toEqual({});
+  });
+
+  it('starts a GPU server on a GPU profile at its GPU default, within its range', async () => {
+    const service = new MockConsoleService();
+    modelsOf(service).servingOptions.hardwareProfiles.push(
+      createMessage(HardwareProfileOptionSchema, {
+        name: 'nvidia-gpu',
+        namespace: 'redhat-ods-applications',
+        displayName: 'NVIDIA GPU',
+        identifiers: [
+          { identifier: 'cpu', minCount: '2', defaultCount: '4', maxCount: '8' },
+          { identifier: 'memory', minCount: '8Gi', defaultCount: '16Gi', maxCount: '64Gi' },
+          { identifier: 'nvidia.com/gpu', minCount: '1', defaultCount: '2', maxCount: '2' },
+        ],
+      }),
+    );
+    const user = userEvent.setup();
+    const created = await openDeployment(user, service);
+    // A CPU server on a GPU profile would be given a GPU it never uses.
+    await chooseServer(user);
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Hardware profile' }), 'NVIDIA GPU');
+    expect(screen.getByRole('combobox', { name: 'Hardware profile' })).toHaveAccessibleDescription(
+      /NVIDIA GPU gives the model nvidia\.com\/gpu, which vLLM CPU doesn.t use\./,
+    );
+    expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled();
+    // The profile was chosen first; the GPU server then starts at its GPU default.
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Model server' }), 'vLLM NVIDIA GPU');
+    const gpus = screen.getByRole('spinbutton', { name: 'GPUs' });
+    expect(gpus).toHaveValue(2);
+    expect(gpus).toHaveAccessibleDescription('From 1 to 2.');
+    expect(screen.getByRole('textbox', { name: 'Memory' })).toHaveValue('16Gi');
+    // A CPU or GPU count outside the profile's range is refused.
+    const cpu = screen.getByRole('textbox', { name: 'CPU' });
+    await user.clear(cpu);
+    await user.type(cpu, '16');
+    await user.tab();
+    expect(cpu).toHaveAccessibleDescription(/^Enter a value from 2 to 8\./);
+    expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled();
+    await user.clear(cpu);
+    await user.type(cpu, '4');
+    await user.clear(gpus);
+    await user.type(gpus, '3');
+    await user.tab();
+    expect(gpus).toHaveAccessibleDescription(/^Enter a number from 1 to 2\./);
+    expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled();
+    await user.clear(gpus);
+    await user.type(gpus, '2');
+    await user.type(screen.getByRole('textbox', { name: /Runtime image/ }), 'registry.example/vllm-cuda:test');
+    await toReview(user);
+    await waitFor(() => expect(created).toHaveBeenCalled());
+    const main = created.mock.calls[0][0].object?.spec?.main;
+    expect(main?.requests).toEqual({ cpu: '4', memory: '16Gi', 'nvidia.com/gpu': '2' });
+    expect(main?.limits).toEqual({ cpu: '4', memory: '16Gi', 'nvidia.com/gpu': '2' });
   });
 
   it('refuses a GPU server on a profile that gives no GPU', async () => {
@@ -1060,10 +1154,7 @@ describe('the model server', () => {
       /Default profile gives the model no nvidia\.com\/gpu, which vLLM NVIDIA GPU needs\./,
     );
     expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled();
-    await user.selectOptions(
-      screen.getByRole('combobox', { name: 'Hardware profile' }),
-      'None: set CPU, memory and GPUs here',
-    );
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Hardware profile' }), 'None');
     expect(screen.getByRole('spinbutton', { name: 'GPUs' })).toHaveValue(1);
     expect(screen.getByRole('button', { name: 'Next' })).toBeEnabled();
   });

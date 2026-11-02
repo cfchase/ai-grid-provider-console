@@ -30,8 +30,9 @@ export type ModelInput = {
   /** The model server's presets (spec.base_refs); empty for KServe's default. */
   baseRefs: string[];
   /**
-   * The HardwareProfile to run with (spec.hardware_profile). With one, the profile sets the
-   * resources, so cpu, memory and gpuCount aren't sent.
+   * The HardwareProfile to run with (spec.hardware_profile). Its defaults filled cpu, memory and
+   * gpuCount, which are sent as the container's requests and limits, as the OpenShift AI dashboard
+   * does: the cluster's webhook then adds nothing to them.
    */
   hardwareProfile?: string;
   /** The resource gpuCount asks for: the model server's accelerator. Default nvidia.com/gpu. */
@@ -48,18 +49,19 @@ export const namedPlacement = (clusters: string[]): PlacementInit => ({
   labelSelector: { matchExpressions: [{ key: 'name', operator: 'In', values: [...clusters] }] },
 });
 
+/** The main container's requests the wizard sets; a GPU count of 0 asks for none. */
+const requestsOf = (input: ModelInput): Record<string, string> => ({
+  ...(input.cpu ? { cpu: input.cpu } : {}),
+  ...(input.memory ? { memory: input.memory } : {}),
+  ...(input.gpuCount > 0 ? { [input.gpuResource ?? REQUEST_GPU]: String(input.gpuCount) } : {}),
+});
+
 /**
- * The main container's requests the wizard sets; a GPU count of 0 asks for none. None with a
- * hardware profile, which sets them on each cluster (the backend refuses both).
+ * With a hardware profile, the limits equal the requests, as the OpenShift AI dashboard sends them
+ * (the profile's webhook would also set each missing limit to its request). Without one, only
+ * requests, as before.
  */
-const requestsOf = (input: ModelInput): Record<string, string> =>
-  input.hardwareProfile
-    ? {}
-    : {
-        ...(input.cpu ? { cpu: input.cpu } : {}),
-        ...(input.memory ? { memory: input.memory } : {}),
-        ...(input.gpuCount > 0 ? { [input.gpuResource ?? REQUEST_GPU]: String(input.gpuCount) } : {}),
-      };
+const limitsOf = (input: ModelInput): Record<string, string> => (input.hardwareProfile ? requestsOf(input) : {});
 
 export const createRequestOf = (input: ModelInput): MessageInitShape<typeof ModelsCreateRequestSchema> => {
   const displayName = input.displayName.trim();
@@ -84,6 +86,7 @@ export const createRequestOf = (input: ModelInput): MessageInitShape<typeof Mode
         main: {
           image: input.runtimeImage.trim(),
           requests: requestsOf(input),
+          limits: limitsOf(input),
           env: withRuntimeArgs([], input.runtimeArgs),
         },
         // Both set: with the scheduler on, the backend takes managed_route as sent (modelRouterToMap).

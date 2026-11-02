@@ -5,10 +5,13 @@
  * accelerator preset, an LLMInferenceServiceConfig a model's spec.base_refs names, as the ODH
  * dashboard's accelerator choice adds one (packages/llmd-serving/src/deployments/configs.ts,
  * applyConfigRef). A preset sets the runtime image and its environment, so a model on one may leave
- * its image empty (ModelContainer.image in the backend's model_type.proto). A hardware profile sets
- * the container's resources on each cluster (ModelSpec.hardware_profile).
+ * its image empty (ModelContainer.image in the backend's model_type.proto). A hardware profile is a
+ * starting point, as in the OpenShift AI dashboard: it fills the wizard's CPU, memory and GPU fields
+ * from its defaults and limits them to its range, and the model is saved with those resources and
+ * the profile's annotations (ModelSpec.hardware_profile).
  */
 import { useQuery } from '@connectrpc/connect-query';
+import { parseQuantity } from '../../utilities/quantity';
 import type {
   HardwareProfileOption,
   ModelServerOption,
@@ -28,12 +31,24 @@ export type ModelServer = {
   usesGpus: boolean;
 };
 
+/** One resource of a hardware profile, with its counts as Kubernetes quantities. */
+export type ProfileResource = {
+  /** The resource name, such as cpu, memory or nvidia.com/gpu. */
+  identifier: string;
+  label: string;
+  min: string;
+  default: string;
+  /** Undefined: no maximum. */
+  max?: string;
+};
+
 export type HardwareProfile = {
   name: string;
   label: string;
   description: string;
   /** The resources the profile sets (its spec.identifiers). */
   resources: string[];
+  identifiers: ProfileResource[];
 };
 
 export type ServingOptions = { servers: ModelServer[]; profiles: HardwareProfile[] };
@@ -50,7 +65,14 @@ const toProfile = (option: HardwareProfileOption): HardwareProfile => ({
   name: option.name,
   label: option.displayName || option.name,
   description: option.description,
-  resources: [...option.resources],
+  resources: option.identifiers.map((i) => i.identifier),
+  identifiers: option.identifiers.map((i) => ({
+    identifier: i.identifier,
+    label: i.displayName || i.identifier,
+    min: i.minCount,
+    default: i.defaultCount,
+    max: i.maxCount || undefined,
+  })),
 });
 
 const servingOptionsOf = (answer: ModelsListServingOptionsResponse | undefined): ServingOptions => ({
@@ -70,6 +92,15 @@ export const serverSuitsText = (server: ModelServer) =>
   server.usesGpus
     ? `Only for clusters whose nodes have ${server.accelerators.join(' or ')}: OpenShift AI installs this model server only there, and the model fails on any other cluster you select.`
     : 'For any cluster: OpenShift AI installs this model server on every cluster.';
+
+/**
+ * The accelerators a profile gives that a CPU server doesn't use: the cluster's webhook would add
+ * them, with the profile's node selector, to a model that never uses them. Undefined otherwise.
+ */
+export const unusedAccelerator = (server: ModelServer | undefined, profile: HardwareProfile | undefined) => {
+  const extra = profile?.resources.filter((r) => r !== 'cpu' && r !== 'memory') ?? [];
+  return server && !server.usesGpus && extra.length > 0 ? extra.join(' and ') : undefined;
+};
 
 /** The accelerator a profile lacks that the server needs; undefined when it has one, or none is needed. */
 export const missingAccelerator = (server: ModelServer | undefined, profile: HardwareProfile | undefined) =>
@@ -94,3 +125,32 @@ export const modelServerLabel = (baseRefs: readonly string[], servers: readonly 
 
 /** What the pages show for the runtime image of a model that leaves it to its server's presets. */
 export const PRESET_IMAGE = 'The model server’s image';
+
+/** The profile's entry for a resource, such as cpu; undefined without a profile or that resource. */
+export const profileResource = (profile: HardwareProfile | undefined, identifier: string | undefined) =>
+  identifier === undefined ? undefined : profile?.identifiers.find((i) => i.identifier === identifier);
+
+/** A resource's range as the field's help says it, for example "From 2Gi to 8Gi." */
+export const rangeText = (resource: ProfileResource) =>
+  resource.max === undefined ? `At least ${resource.min}.` : `From ${resource.min} to ${resource.max}.`;
+
+/**
+ * Whether a value is outside the profile's range for the resource: a field error, as the OpenShift AI
+ * dashboard checks, worded as the console's field errors are. Undefined when it fits, when the
+ * profile doesn't set the resource, or when the value doesn't parse (the field's own check says so).
+ */
+export const outOfRange = (
+  resource: ProfileResource | undefined,
+  value: string,
+  noun: 'value' | 'number' = 'value',
+) => {
+  const amount = parseQuantity(value);
+  if (!resource || amount === undefined) return undefined;
+  const min = parseQuantity(resource.min);
+  const max = parseQuantity(resource.max);
+  const fits = (min === undefined || amount >= min) && (max === undefined || amount <= max);
+  if (fits) return undefined;
+  return resource.max === undefined
+    ? `Enter a ${noun} of at least ${resource.min}.`
+    : `Enter a ${noun} from ${resource.min} to ${resource.max}.`;
+};

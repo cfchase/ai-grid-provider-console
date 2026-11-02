@@ -53,7 +53,14 @@ model server named as OpenShift AI names its presets, v<major>-<minor>-<patch>-<
 {{- range $opts.hardwareProfiles -}}
 {{- if hasKey $seen (printf "profile/%s" .name) }}{{ fail (printf "servingOptions.hardwareProfiles lists %s twice" .name) }}{{ end -}}
 {{- $_ := set $seen (printf "profile/%s" .name) true -}}
-{{- $profiles = append $profiles (dict "name" .name "namespace" .namespace "displayName" (.displayName | default "") "description" (.description | default "") "resources" (.resources | default list)) -}}
+{{- $identifiers := list -}}
+{{- range (.identifiers | default list) -}}
+{{- /* Counts as strings: the backend reads them as Kubernetes quantities, and YAML would make 2 a number. */ -}}
+{{- $id := dict "identifier" .identifier "displayName" (.displayName | default "") "minCount" (toString .minCount) "defaultCount" (toString .defaultCount) -}}
+{{- if hasKey . "maxCount" }}{{ $_ := set $id "maxCount" (toString .maxCount) }}{{ end -}}
+{{- $identifiers = append $identifiers $id -}}
+{{- end -}}
+{{- $profiles = append $profiles (dict "name" .name "namespace" .namespace "displayName" (.displayName | default "") "description" (.description | default "") "identifiers" $identifiers) -}}
 {{- end -}}
 {{- toYaml (dict "modelServers" $servers "hardwareProfiles" $profiles) -}}
 {{- end -}}

@@ -52,7 +52,10 @@ export type ModelView = {
   runtimeImage?: string;
   /** The LLMInferenceServiceConfig presets the model is built on; empty for KServe's default. */
   baseRefs: string[];
-  /** The HardwareProfile that sets the model's resources on each cluster (spec.hardware_profile). */
+  /**
+   * The HardwareProfile the model runs with (spec.hardware_profile): its node selector and
+   * tolerations on each cluster, and the range its resources were chosen from.
+   */
   hardwareProfile?: string;
   replicas?: number;
   /** KEDA scales the model (spec.scaling), so it has no fixed replica count. */

@@ -136,7 +136,21 @@
               "namespace": { "type": "string", "pattern": "^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$" },
               "displayName": { "type": "string" },
               "description": { "type": "string" },
-              "resources": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+              "identifiers": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["identifier", "minCount", "defaultCount"],
+                  "properties": {
+                    "identifier": { "type": "string", "minLength": 1 },
+                    "displayName": { "type": "string" },
+                    "minCount": { "$ref": "#/definitions/quantity" },
+                    "defaultCount": { "$ref": "#/definitions/quantity" },
+                    "maxCount": { "$ref": "#/definitions/quantity" }
+                  }
+                }
+              }
             }
           }
         }
@@ -151,6 +165,11 @@
     }
   },
   "definitions": {
+    "quantity": {
+      "description": "A Kubernetes quantity as a quoted string, such as \"2\", \"500m\" or \"4Gi\".",
+      "type": "string",
+      "pattern": "^[0-9]+(\\.[0-9]+)?(m|k|M|G|T|P|E|Ki|Mi|Gi|Ti|Pi|Ei)?$"
+    },
     "objectName": {
       "description": "A Kubernetes object name (DNS-1123 subdomain).",
       "type": "string",

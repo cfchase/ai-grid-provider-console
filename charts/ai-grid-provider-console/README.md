@@ -32,6 +32,13 @@ ConfigMap `<fullname>-serving-options`, which the backend reads at start, and a 
 restarts the pod. The defaults are what OpenShift AI 3.6 installs: every supported accelerator
 preset and `default-profile`. `values.yaml` cites the sources.
 
+A hardware profile is a starting point, as in the OpenShift AI dashboard: choosing one fills the
+wizard's CPU, memory and GPU fields from each identifier's `defaultCount`, the user can change them
+within `minCount` and `maxCount`, and the model is saved with those resources and the profile's
+annotations. Copy `identifiers` from the profile on the clusters (`oc get hardwareprofile NAME -n
+NAMESPACE -o yaml`, `spec.identifiers`). Nothing checks the copy, so update it when the profile
+changes.
+
 To offer a hardware profile you created on the clusters, such as one with an NVIDIA GPU, list it
 with the default one:
 
@@ -41,13 +48,18 @@ servingOptions:
     - name: default-profile
       namespace: redhat-ods-applications
       displayName: Default profile
-      description: 2 CPUs and 4 GiB of memory.
-      resources: [cpu, memory]
+      description: Starts at 2 CPUs and 4 GiB of memory.
+      identifiers:
+        - { identifier: cpu, displayName: CPU, minCount: "1", defaultCount: "2", maxCount: "4" }
+        - { identifier: memory, displayName: Memory, minCount: 2Gi, defaultCount: 4Gi, maxCount: 8Gi }
     - name: nvidia-gpu
       namespace: redhat-ods-applications
       displayName: NVIDIA GPU
-      description: 4 CPUs, 16 GiB of memory and one NVIDIA GPU.
-      resources: [cpu, memory, nvidia.com/gpu]
+      description: Starts at 4 CPUs, 16 GiB of memory and one NVIDIA GPU.
+      identifiers:
+        - { identifier: cpu, displayName: CPU, minCount: "2", defaultCount: "4", maxCount: "8" }
+        - { identifier: memory, displayName: Memory, minCount: 8Gi, defaultCount: 16Gi, maxCount: 64Gi }
+        - { identifier: nvidia.com/gpu, displayName: NVIDIA GPU, minCount: "1", defaultCount: "1", maxCount: "2" }
 ```
 
 A list value replaces the whole default list, so repeat the entries you keep.

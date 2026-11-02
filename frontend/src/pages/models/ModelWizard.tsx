@@ -48,6 +48,10 @@ import { deploymentNameFromUri, locationLabel, modelPath, siteNamesOf } from './
 import {
   hardwareProfileLabel,
   missingAccelerator,
+  outOfRange,
+  unusedAccelerator,
+  profileResource,
+  rangeText,
   modelServerLabel,
   modelServerOf,
   PRESET_IMAGE,
@@ -72,7 +76,11 @@ const defaults = { replicas: String(DEFAULT_REPLICAS), cpu: '2', memory: '4Gi', 
 
 /** A resource the model was deployed without, shown in its read-only field. */
 const NOT_SET = 'Not set';
-/** A resource a model's hardware profile sets on each cluster. */
+/** "CPU", "CPU and Memory", or "CPU, Memory, and NVIDIA GPU". */
+const listOf = (items: string[]) =>
+  items.length < 3 ? items.join(' and ') : `${items.slice(0, -1).join(', ')}, and ${items[items.length - 1]}`;
+
+/** A resource of a model deployed with a profile before the console sent the profile's resources. */
 const BY_PROFILE = 'Set by the hardware profile';
 
 const fixedReason = {
@@ -201,19 +209,48 @@ export const ModelWizard: React.FC<Props> = ({ model }) => {
   // No default server: the grid's clusters can have GPUs or not, so the user picks one.
   const [serverName, setServerName] = useState('');
   const server = servingOptions.servers.find((s) => s.name === serverName);
-  // Empty: no profile, and the wizard's own CPU, memory and GPU fields set the resources.
+  // Empty: no profile. A profile is a starting point, as in the OpenShift AI dashboard: choosing one
+  // fills CPU, memory and GPUs from its defaults, and they stay editable within its range.
   const [profileName, setProfileName] = useState('');
   const profile = editing ? undefined : servingOptions.profiles.find((p) => p.name === profileName);
   const editedProfile = hardwareProfileLabel(model?.hardwareProfile, servingOptions.profiles);
+  // A deployed model's resource as its edit shows it: a model deployed with a profile and no
+  // resources of its own (before the console sent the profile's) has the cluster's webhook set them.
+  const byProfile = Boolean(model?.hardwareProfile) && !model?.cpu && !model?.memory;
+  const editedResource = (value: string) => (byProfile ? BY_PROFILE : value || NOT_SET);
+  // The profile's entry for the server's accelerator, which the GPUs field counts.
+  const gpuResourceOf = (s: typeof server, p: typeof profile) =>
+    profileResource(
+      p,
+      s?.accelerators.find((a) => p?.resources.includes(a)),
+    );
   const chooseServer = (name: string) => {
     setServerName(name);
-    // A GPU server starts at one GPU (none is what crash-loops); a CPU server hides the field,
-    // so it goes back to its default rather than keep a value nobody can see or fix.
-    if (!servingOptions.servers.find((s) => s.name === name)?.usesGpus) setGpuCount(defaults.gpuCount);
-    else if (gpuCount === defaults.gpuCount || gpuCount === '') setGpuCount('1');
+    const next = servingOptions.servers.find((s) => s.name === name);
+    // A GPU server starts at the profile's GPU default, or one GPU (none is what crash-loops); a CPU
+    // server hides the field, so it goes back to its default rather than keep a value nobody can see.
+    if (!next?.usesGpus) setGpuCount(defaults.gpuCount);
+    else
+      setGpuCount(
+        gpuResourceOf(next, profile)?.default ?? (gpuCount === defaults.gpuCount || gpuCount === '' ? '1' : gpuCount),
+      );
   };
-  // With a profile, the profile gives the GPUs.
-  const usesGpus = editing || (Boolean(server?.usesGpus) && !profile);
+  const chooseProfile = (name: string) => {
+    setProfileName(name);
+    const next = servingOptions.profiles.find((p) => p.name === name);
+    if (!next) return;
+    const cpuDefault = profileResource(next, 'cpu')?.default;
+    const memoryDefault = profileResource(next, 'memory')?.default;
+    const gpuDefault = server?.usesGpus ? gpuResourceOf(server, next)?.default : undefined;
+    if (cpuDefault) setCpu(cpuDefault);
+    if (memoryDefault) setMemory(memoryDefault);
+    if (gpuDefault) setGpuCount(gpuDefault);
+  };
+  const usesGpus = editing || Boolean(server?.usesGpus);
+  // The profile's range for each field; undefined without a profile or for a resource it doesn't set.
+  const cpuRange = profileResource(profile, 'cpu');
+  const memoryRange = profileResource(profile, 'memory');
+  const gpuRange = gpuResourceOf(server, profile);
   const [runtimeArgs, setRuntimeArgs] = useState<RuntimeArgsFieldData>({
     enabled: start.runtimeArgs.length > 0,
     args: start.runtimeArgs,
@@ -270,20 +307,29 @@ export const ModelWizard: React.FC<Props> = ({ model }) => {
   const modelUriError = shownError('modelUri', modelUri);
   const runtimeImageError = imageFromPreset ? undefined : shownError('runtimeImage', runtimeImage);
   const replicasError = shownError('replicas', replicas, Number);
-  const cpuError = shownError('cpu', cpu);
-  const memoryError = shownError('memory', memory);
+  // Outside the profile's range is an error whatever the field's state, so Next stays disabled.
+  const cpuOutOfRange = outOfRange(cpuRange, cpu);
+  const memoryOutOfRange = outOfRange(memoryRange, memory);
+  const gpuOutOfRange = usesGpus ? outOfRange(gpuRange, gpuCount, 'number') : undefined;
+  const cpuError = shownError('cpu', cpu) ?? cpuOutOfRange;
+  const memoryError = shownError('memory', memory) ?? memoryOutOfRange;
   // KServe's GPU preset with no GPUs is what crash-loops on a CPU-only node.
   const gpusMissing = usesGpus && !editing && gpuCount !== '' && Number(gpuCount) < 1;
   const serverError = !editing && touched.has('server') && !server ? 'Required.' : undefined;
   // A GPU server on a profile that gives no such accelerator would start without one.
   const lacking = missingAccelerator(server, profile);
+  // A CPU server on a GPU profile would be given GPUs it never uses.
+  const unused = unusedAccelerator(server, profile);
   const profileError =
     lacking && server && profile
       ? `${profile.label} gives the model no ${lacking}, which ${server.label} needs. Select a profile with one, or no profile.`
-      : undefined;
+      : unused && server && profile
+        ? `${profile.label} gives the model ${unused}, which ${server.label} doesn't use. Select a profile without one, or no profile.`
+        : undefined;
   const gpuCountError =
     shownError('gpuCount', gpuCount, Number) ??
-    (touched.has('gpuCount') && gpusMissing ? 'A GPU model server needs at least 1 GPU.' : undefined);
+    (touched.has('gpuCount') && gpusMissing ? 'A GPU model server needs at least 1 GPU.' : undefined) ??
+    gpuOutOfRange;
   // A deployed model's source, name and resources are fixed, so only what an edit can change is checked.
   const sourceValid = editing || createModelSchema.pick({ modelUri: true }).safeParse({ modelUri }).success;
   const deploymentValid = editing
@@ -300,13 +346,13 @@ export const ModelWizard: React.FC<Props> = ({ model }) => {
         (replicas !== '' && createModelSchema.shape.replicas.safeParse(input.replicas).success))
     : server !== undefined &&
       !profileError &&
+      !cpuOutOfRange &&
+      !memoryOutOfRange &&
+      !gpuOutOfRange &&
       replicas !== '' &&
-      (profile !== undefined || (gpuCount !== '' && !gpusMissing)) &&
-      createModelSchema
-        .omit({ locations: true, runtimeImage: true })
-        .strip()
-        // A profile sets the resources, so the hidden fields' values don't count.
-        .safeParse(profile ? { ...input, cpu: defaults.cpu, memory: defaults.memory, gpuCount: 0 } : input).success &&
+      gpuCount !== '' &&
+      !gpusMissing &&
+      createModelSchema.omit({ locations: true, runtimeImage: true }).strip().safeParse(input).success &&
       (imageFromPreset || createModelSchema.shape.runtimeImage.safeParse(input.runtimeImage).success);
   // An edit that keeps the locations doesn't depend on which locations are offered right now.
   const locationsChanged = !editing || !sameSet(locations, start.locations);
@@ -479,14 +525,9 @@ export const ModelWizard: React.FC<Props> = ({ model }) => {
         { term: 'Hardware profile', value: editing ? (editedProfile ?? 'None') : (profile?.label ?? 'None') },
         { term: 'Runtime image', value: imageFromPreset ? PRESET_IMAGE : runtimeImage },
         { term: 'Replicas', value: replicasEditable ? replicas : 'Autoscaled' },
-        // A profile sets these on each cluster, for a new model or one deployed with a profile.
-        ...(profile || (editing && model?.hardwareProfile)
-          ? []
-          : [
-              { term: 'CPU', value: cpu },
-              { term: 'Memory', value: memory },
-              { term: 'GPUs', value: String(input.gpuCount) },
-            ]),
+        { term: 'CPU', value: editing ? editedResource(cpu) : cpu },
+        { term: 'Memory', value: editing ? editedResource(memory) : memory },
+        { term: 'GPUs', value: editing ? editedResource(gpuCount) : String(input.gpuCount) },
         { term: 'Additional runtime arguments', value: input.runtimeArgs.join(' ') },
       ],
     },
@@ -659,18 +700,18 @@ export const ModelWizard: React.FC<Props> = ({ model }) => {
                       id="model-hardware-profile"
                       aria-describedby="model-hardware-profile-help"
                       value={profile?.name ?? ''}
-                      onChange={(_event, value) => setProfileName(value)}
+                      onChange={(_event, value) => chooseProfile(value)}
                       validated={profileError ? 'error' : 'default'}
                     >
-                      <FormSelectOption value="" label="None: set CPU, memory and GPUs here" />
+                      <FormSelectOption value="" label="None" />
                       {servingOptions.profiles.map((p) => (
                         <FormSelectOption key={p.name} value={p.name} label={p.label} />
                       ))}
                     </FormSelect>
                     <Help id="model-hardware-profile-help" error={profileError}>
                       {profile
-                        ? `${profile.description} The profile sets the model’s CPU, memory and accelerators on each cluster.`.trim()
-                        : "A hardware profile sets the model's resources on each cluster. Without one, set them here."}
+                        ? `${profile.description} Its defaults fill ${listOf(profile.identifiers.map((i) => i.label))}. Change them within its range.`.trim()
+                        : 'Optional. Starts CPU, memory, and GPUs at the profile’s defaults, within its range.'}
                     </Help>
                   </FormGroup>
                 </>
@@ -722,23 +763,23 @@ export const ModelWizard: React.FC<Props> = ({ model }) => {
                   <ReadOnlyField
                     label="CPU"
                     fieldId="deployment-cpu"
-                    value={model?.hardwareProfile ? BY_PROFILE : cpu || NOT_SET}
+                    value={editedResource(cpu)}
                     reason={fixedReason.resources}
                   />
                   <ReadOnlyField
                     label="Memory"
                     fieldId="deployment-memory"
-                    value={model?.hardwareProfile ? BY_PROFILE : memory || NOT_SET}
+                    value={editedResource(memory)}
                     reason={fixedReason.resources}
                   />
                   <ReadOnlyField
                     label="GPUs"
                     fieldId="deployment-gpus"
-                    value={model?.hardwareProfile ? BY_PROFILE : gpuCount}
+                    value={editedResource(gpuCount)}
                     reason={fixedReason.resources}
                   />
                 </>
-              ) : profile ? null : (
+              ) : (
                 <>
                   <FormGroup label="CPU" fieldId="deployment-cpu" isRequired>
                     <TextInput
@@ -751,7 +792,9 @@ export const ModelWizard: React.FC<Props> = ({ model }) => {
                       isRequired
                     />
                     <Help id="deployment-cpu-help" error={cpuError}>
-                      In cores or millicores. For example, 2 or 500m.
+                      {cpuRange
+                        ? `${rangeText(cpuRange)} In cores or millicores.`
+                        : 'In cores or millicores. For example, 2 or 500m.'}
                     </Help>
                   </FormGroup>
                   <FormGroup label="Memory" fieldId="deployment-memory" isRequired>
@@ -765,7 +808,7 @@ export const ModelWizard: React.FC<Props> = ({ model }) => {
                       isRequired
                     />
                     <Help id="deployment-memory-help" error={memoryError}>
-                      For example, 4Gi or 512Mi.
+                      {memoryRange ? rangeText(memoryRange) : 'For example, 4Gi or 512Mi.'}
                     </Help>
                   </FormGroup>
                   {usesGpus && (
@@ -773,8 +816,8 @@ export const ModelWizard: React.FC<Props> = ({ model }) => {
                       <CountInput
                         id="deployment-gpus"
                         label="GPUs"
-                        min={1}
-                        max={64}
+                        min={Math.max(1, Number(gpuRange?.min ?? 1))}
+                        max={gpuRange?.max !== undefined ? Number(gpuRange.max) : 64}
                         value={gpuCount}
                         onChange={setGpuCount}
                         onBlur={() => touch('gpuCount')}
@@ -782,7 +825,7 @@ export const ModelWizard: React.FC<Props> = ({ model }) => {
                         validated={gpuCountError ? 'error' : 'default'}
                       />
                       <Help id="deployment-gpus-help" error={gpuCountError}>
-                        From 1 to 64.
+                        {gpuRange ? rangeText(gpuRange) : 'From 1 to 64.'}
                       </Help>
                     </FormGroup>
                   )}

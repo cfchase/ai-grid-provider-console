@@ -5,6 +5,9 @@ import {
   type ModelServer,
   modelServerLabel,
   modelServerOf,
+  outOfRange,
+  type ProfileResource,
+  rangeText,
   serverSuitsText,
 } from './modelServers';
 
@@ -22,7 +25,13 @@ const gpu: ModelServer = {
   accelerators: ['nvidia.com/gpu'],
   usesGpus: true,
 };
-const profile = (resources: string[]): HardwareProfile => ({ name: 'p', label: 'P', description: '', resources });
+const profile = (resources: string[]): HardwareProfile => ({
+  name: 'p',
+  label: 'P',
+  description: '',
+  resources,
+  identifiers: resources.map((identifier) => ({ identifier, label: identifier, min: '1', default: '1' })),
+});
 
 describe('modelServerLabel', () => {
   it('names a listed preset by its display name and any other by its name', () => {
@@ -54,5 +63,27 @@ describe('serverSuitsText', () => {
   it('says a GPU server runs only where its accelerator is', () => {
     expect(serverSuitsText(gpu)).toContain('nvidia.com/gpu');
     expect(serverSuitsText(cpu)).toContain('any cluster');
+  });
+});
+
+describe('profile ranges', () => {
+  const memory: ProfileResource = { identifier: 'memory', label: 'Memory', min: '2Gi', default: '4Gi', max: '8Gi' };
+  it('accepts a value within the profile range, in any unit, and refuses one outside it', () => {
+    expect(outOfRange(memory, '8Gi')).toBeUndefined();
+    expect(outOfRange(memory, '4096Mi')).toBeUndefined();
+    expect(outOfRange(memory, '16Gi')).toBe('Enter a value from 2Gi to 8Gi.');
+    expect(outOfRange(memory, '1Gi')).toBe('Enter a value from 2Gi to 8Gi.');
+    expect(outOfRange({ ...memory, max: undefined }, '1Gi')).toBe('Enter a value of at least 2Gi.');
+    expect(
+      outOfRange({ identifier: 'nvidia.com/gpu', label: 'GPU', min: '1', default: '1', max: '2' }, '4', 'number'),
+    ).toBe('Enter a number from 1 to 2.');
+  });
+  it('leaves a resource the profile does not set, or an unparsed value, to the field', () => {
+    expect(outOfRange(undefined, '64Gi')).toBeUndefined();
+    expect(outOfRange(memory, 'lots')).toBeUndefined();
+  });
+  it('says the range as help', () => {
+    expect(rangeText(memory)).toBe('From 2Gi to 8Gi.');
+    expect(rangeText({ ...memory, max: undefined })).toBe('At least 2Gi.');
   });
 });

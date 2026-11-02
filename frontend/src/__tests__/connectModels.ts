@@ -153,8 +153,11 @@ export class FakeModels {
         name: 'default-profile',
         namespace: 'redhat-ods-applications',
         displayName: 'Default profile',
-        description: '2 CPUs and 4 GiB of memory.',
-        resources: ['cpu', 'memory'],
+        description: 'Starts at 2 CPUs and 4 GiB of memory.',
+        identifiers: [
+          { identifier: 'cpu', displayName: 'CPU', minCount: '1', defaultCount: '2', maxCount: '4' },
+          { identifier: 'memory', displayName: 'Memory', minCount: '2Gi', defaultCount: '4Gi', maxCount: '8Gi' },
+        ],
       },
     ],
   });
