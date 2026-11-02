@@ -15,7 +15,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai_grid/v1/models_service.proto.
  */
 export const file_ai_grid_v1_models_service: GenFile = /*@__PURE__*/
-  fileDesc("Ch9haV9ncmlkL3YxL21vZGVsc19zZXJ2aWNlLnByb3RvEgphaV9ncmlkLnYxIo8BChFNb2RlbHNMaXN0UmVxdWVzdBITCgZvZmZzZXQYASABKAVIAIgBARISCgVsaW1pdBgCIAEoBUgBiAEBEhMKBmZpbHRlchgDIAEoCUgCiAEBEhIKBW9yZGVyGAQgASgJSAOIAQFCCQoHX29mZnNldEIICgZfbGltaXRCCQoHX2ZpbHRlckIICgZfb3JkZXIiUwoSTW9kZWxzTGlzdFJlc3BvbnNlEgwKBHNpemUYASABKAUSDQoFdG90YWwYAiABKAUSIAoFaXRlbXMYAyADKAsyES5haV9ncmlkLnYxLk1vZGVsIh4KEE1vZGVsc0dldFJlcXVlc3QSCgoCaWQYASABKAkiNgoRTW9kZWxzR2V0UmVzcG9uc2USIQoGb2JqZWN0GAEgASgLMhEuYWlfZ3JpZC52MS5Nb2RlbCI4ChNNb2RlbHNDcmVhdGVSZXF1ZXN0EiEKBm9iamVjdBgBIAEoCzIRLmFpX2dyaWQudjEuTW9kZWwiOQoUTW9kZWxzQ3JlYXRlUmVzcG9uc2USIQoGb2JqZWN0GAEgASgLMhEuYWlfZ3JpZC52MS5Nb2RlbCJ3ChNNb2RlbHNVcGRhdGVSZXF1ZXN0EiEKBm9iamVjdBgBIAEoCzIRLmFpX2dyaWQudjEuTW9kZWwSLwoLdXBkYXRlX21hc2sYAiABKAsyGi5nb29nbGUucHJvdG9idWYuRmllbGRNYXNrEgwKBGxvY2sYAyABKAgiOQoUTW9kZWxzVXBkYXRlUmVzcG9uc2USIQoGb2JqZWN0GAEgASgLMhEuYWlfZ3JpZC52MS5Nb2RlbCI7ChNNb2RlbHNEZWxldGVSZXF1ZXN0EgoKAmlkGAEgASgJEhgKEHJlc291cmNlX3ZlcnNpb24YAiABKAUiFgoUTW9kZWxzRGVsZXRlUmVzcG9uc2UiHAoaTW9kZWxzTGlzdExvY2F0aW9uc1JlcXVlc3QiMAobTW9kZWxzTGlzdExvY2F0aW9uc1Jlc3BvbnNlEhEKCWxvY2F0aW9ucxgBIAMoCSIkCiJNb2RlbHNMaXN0UGxhY2VtZW50Q2x1c3RlcnNSZXF1ZXN0IjcKI01vZGVsc0xpc3RQbGFjZW1lbnRDbHVzdGVyc1Jlc3BvbnNlEhAKCGNsdXN0ZXJzGAEgAygJMuUGCgZNb2RlbHMSXQoETGlzdBIdLmFpX2dyaWQudjEuTW9kZWxzTGlzdFJlcXVlc3QaHi5haV9ncmlkLnYxLk1vZGVsc0xpc3RSZXNwb25zZSIWgtPkkwIQEg4vYXBpL3YxL21vZGVscxJnCgNHZXQSHC5haV9ncmlkLnYxLk1vZGVsc0dldFJlcXVlc3QaHS5haV9ncmlkLnYxLk1vZGVsc0dldFJlc3BvbnNlIiOC0+STAh1iBm9iamVjdBITL2FwaS92MS9tb2RlbHMve2lkfRJzCgZDcmVhdGUSHy5haV9ncmlkLnYxLk1vZGVsc0NyZWF0ZVJlcXVlc3QaIC5haV9ncmlkLnYxLk1vZGVsc0NyZWF0ZVJlc3BvbnNlIiaC0+STAiA6Bm9iamVjdGIGb2JqZWN0Ig4vYXBpL3YxL21vZGVscxJ/CgZVcGRhdGUSHy5haV9ncmlkLnYxLk1vZGVsc1VwZGF0ZVJlcXVlc3QaIC5haV9ncmlkLnYxLk1vZGVsc1VwZGF0ZVJlc3BvbnNlIjKC0+STAiw6Bm9iamVjdGIGb2JqZWN0MhovYXBpL3YxL21vZGVscy97b2JqZWN0LmlkfRJoCgZEZWxldGUSHy5haV9ncmlkLnYxLk1vZGVsc0RlbGV0ZVJlcXVlc3QaIC5haV9ncmlkLnYxLk1vZGVsc0RlbGV0ZVJlc3BvbnNlIhuC0+STAhUqEy9hcGkvdjEvbW9kZWxzL3tpZH0SiQEKDUxpc3RMb2NhdGlvbnMSJi5haV9ncmlkLnYxLk1vZGVsc0xpc3RMb2NhdGlvbnNSZXF1ZXN0GicuYWlfZ3JpZC52MS5Nb2RlbHNMaXN0TG9jYXRpb25zUmVzcG9uc2UiJ4gCAYLT5JMCHhIcL2FwaS92MS9tb2RlbHM6bGlzdExvY2F0aW9ucxKmAQoVTGlzdFBsYWNlbWVudENsdXN0ZXJzEi4uYWlfZ3JpZC52MS5Nb2RlbHNMaXN0UGxhY2VtZW50Q2x1c3RlcnNSZXF1ZXN0Gi8uYWlfZ3JpZC52MS5Nb2RlbHNMaXN0UGxhY2VtZW50Q2x1c3RlcnNSZXNwb25zZSIsgtPkkwImEiQvYXBpL3YxL21vZGVsczpsaXN0UGxhY2VtZW50Q2x1c3RlcnNCSlpIZ2l0aHViLmNvbS9vc2FjLXByb2plY3QvYWktZ3JpZC1wcm92aWRlci1iYWNrZW5kL2dlbi9haV9ncmlkL3YxO2FpZ3JpZHYxYgZwcm90bzM", [file_ai_grid_v1_model_type, file_google_api_annotations, file_google_protobuf_field_mask]);
+  fileDesc("Ch9haV9ncmlkL3YxL21vZGVsc19zZXJ2aWNlLnByb3RvEgphaV9ncmlkLnYxIo8BChFNb2RlbHNMaXN0UmVxdWVzdBITCgZvZmZzZXQYASABKAVIAIgBARISCgVsaW1pdBgCIAEoBUgBiAEBEhMKBmZpbHRlchgDIAEoCUgCiAEBEhIKBW9yZGVyGAQgASgJSAOIAQFCCQoHX29mZnNldEIICgZfbGltaXRCCQoHX2ZpbHRlckIICgZfb3JkZXIiUwoSTW9kZWxzTGlzdFJlc3BvbnNlEgwKBHNpemUYASABKAUSDQoFdG90YWwYAiABKAUSIAoFaXRlbXMYAyADKAsyES5haV9ncmlkLnYxLk1vZGVsIh4KEE1vZGVsc0dldFJlcXVlc3QSCgoCaWQYASABKAkiNgoRTW9kZWxzR2V0UmVzcG9uc2USIQoGb2JqZWN0GAEgASgLMhEuYWlfZ3JpZC52MS5Nb2RlbCI4ChNNb2RlbHNDcmVhdGVSZXF1ZXN0EiEKBm9iamVjdBgBIAEoCzIRLmFpX2dyaWQudjEuTW9kZWwiOQoUTW9kZWxzQ3JlYXRlUmVzcG9uc2USIQoGb2JqZWN0GAEgASgLMhEuYWlfZ3JpZC52MS5Nb2RlbCJ3ChNNb2RlbHNVcGRhdGVSZXF1ZXN0EiEKBm9iamVjdBgBIAEoCzIRLmFpX2dyaWQudjEuTW9kZWwSLwoLdXBkYXRlX21hc2sYAiABKAsyGi5nb29nbGUucHJvdG9idWYuRmllbGRNYXNrEgwKBGxvY2sYAyABKAgiOQoUTW9kZWxzVXBkYXRlUmVzcG9uc2USIQoGb2JqZWN0GAEgASgLMhEuYWlfZ3JpZC52MS5Nb2RlbCI7ChNNb2RlbHNEZWxldGVSZXF1ZXN0EgoKAmlkGAEgASgJEhgKEHJlc291cmNlX3ZlcnNpb24YAiABKAUiFgoUTW9kZWxzRGVsZXRlUmVzcG9uc2UiHAoaTW9kZWxzTGlzdExvY2F0aW9uc1JlcXVlc3QiMAobTW9kZWxzTGlzdExvY2F0aW9uc1Jlc3BvbnNlEhEKCWxvY2F0aW9ucxgBIAMoCSIkCiJNb2RlbHNMaXN0UGxhY2VtZW50Q2x1c3RlcnNSZXF1ZXN0IjcKI01vZGVsc0xpc3RQbGFjZW1lbnRDbHVzdGVyc1Jlc3BvbnNlEhAKCGNsdXN0ZXJzGAEgAygJIiEKH01vZGVsc0xpc3RTZXJ2aW5nT3B0aW9uc1JlcXVlc3QilgEKIE1vZGVsc0xpc3RTZXJ2aW5nT3B0aW9uc1Jlc3BvbnNlEjQKDW1vZGVsX3NlcnZlcnMYASADKAsyHS5haV9ncmlkLnYxLk1vZGVsU2VydmVyT3B0aW9uEjwKEWhhcmR3YXJlX3Byb2ZpbGVzGAIgAygLMiEuYWlfZ3JpZC52MS5IYXJkd2FyZVByb2ZpbGVPcHRpb24iYgoRTW9kZWxTZXJ2ZXJPcHRpb24SDAoEbmFtZRgBIAEoCRIUCgxkaXNwbGF5X25hbWUYAiABKAkSEwoLZGVzY3JpcHRpb24YAyABKAkSFAoMYWNjZWxlcmF0b3JzGAQgAygJInYKFUhhcmR3YXJlUHJvZmlsZU9wdGlvbhIMCgRuYW1lGAEgASgJEhEKCW5hbWVzcGFjZRgCIAEoCRIUCgxkaXNwbGF5X25hbWUYAyABKAkSEwoLZGVzY3JpcHRpb24YBCABKAkSEQoJcmVzb3VyY2VzGAUgAygJMoIICgZNb2RlbHMSXQoETGlzdBIdLmFpX2dyaWQudjEuTW9kZWxzTGlzdFJlcXVlc3QaHi5haV9ncmlkLnYxLk1vZGVsc0xpc3RSZXNwb25zZSIWgtPkkwIQEg4vYXBpL3YxL21vZGVscxJnCgNHZXQSHC5haV9ncmlkLnYxLk1vZGVsc0dldFJlcXVlc3QaHS5haV9ncmlkLnYxLk1vZGVsc0dldFJlc3BvbnNlIiOC0+STAh1iBm9iamVjdBITL2FwaS92MS9tb2RlbHMve2lkfRJzCgZDcmVhdGUSHy5haV9ncmlkLnYxLk1vZGVsc0NyZWF0ZVJlcXVlc3QaIC5haV9ncmlkLnYxLk1vZGVsc0NyZWF0ZVJlc3BvbnNlIiaC0+STAiA6Bm9iamVjdGIGb2JqZWN0Ig4vYXBpL3YxL21vZGVscxJ/CgZVcGRhdGUSHy5haV9ncmlkLnYxLk1vZGVsc1VwZGF0ZVJlcXVlc3QaIC5haV9ncmlkLnYxLk1vZGVsc1VwZGF0ZVJlc3BvbnNlIjKC0+STAiw6Bm9iamVjdGIGb2JqZWN0MhovYXBpL3YxL21vZGVscy97b2JqZWN0LmlkfRJoCgZEZWxldGUSHy5haV9ncmlkLnYxLk1vZGVsc0RlbGV0ZVJlcXVlc3QaIC5haV9ncmlkLnYxLk1vZGVsc0RlbGV0ZVJlc3BvbnNlIhuC0+STAhUqEy9hcGkvdjEvbW9kZWxzL3tpZH0SiQEKDUxpc3RMb2NhdGlvbnMSJi5haV9ncmlkLnYxLk1vZGVsc0xpc3RMb2NhdGlvbnNSZXF1ZXN0GicuYWlfZ3JpZC52MS5Nb2RlbHNMaXN0TG9jYXRpb25zUmVzcG9uc2UiJ4gCAYLT5JMCHhIcL2FwaS92MS9tb2RlbHM6bGlzdExvY2F0aW9ucxKmAQoVTGlzdFBsYWNlbWVudENsdXN0ZXJzEi4uYWlfZ3JpZC52MS5Nb2RlbHNMaXN0UGxhY2VtZW50Q2x1c3RlcnNSZXF1ZXN0Gi8uYWlfZ3JpZC52MS5Nb2RlbHNMaXN0UGxhY2VtZW50Q2x1c3RlcnNSZXNwb25zZSIsgtPkkwImEiQvYXBpL3YxL21vZGVsczpsaXN0UGxhY2VtZW50Q2x1c3RlcnMSmgEKEkxpc3RTZXJ2aW5nT3B0aW9ucxIrLmFpX2dyaWQudjEuTW9kZWxzTGlzdFNlcnZpbmdPcHRpb25zUmVxdWVzdBosLmFpX2dyaWQudjEuTW9kZWxzTGlzdFNlcnZpbmdPcHRpb25zUmVzcG9uc2UiKYLT5JMCIxIhL2FwaS92MS9tb2RlbHM6bGlzdFNlcnZpbmdPcHRpb25zQkpaSGdpdGh1Yi5jb20vb3NhYy1wcm9qZWN0L2FpLWdyaWQtcHJvdmlkZXItYmFja2VuZC9nZW4vYWlfZ3JpZC92MTthaWdyaWR2MWIGcHJvdG8z", [file_ai_grid_v1_model_type, file_google_api_annotations, file_google_protobuf_field_mask]);
 
 /**
  * @generated from message ai_grid.v1.ModelsListRequest
@@ -170,9 +170,10 @@ export type ModelsUpdateRequest = Message<"ai_grid.v1.ModelsUpdateRequest"> & {
 
   /**
    * Supported paths: metadata.labels, metadata.annotations, spec.model,
-   * spec.replicas, spec.base_refs, spec.runtime, spec.router, spec.main,
-   * spec.main.image, spec.main.env, spec.main.requests, spec.main.limits,
-   * spec.scaling, spec.placement and spec.rollout, each optionally prefixed
+   * spec.replicas, spec.base_refs, spec.hardware_profile, spec.runtime,
+   * spec.router, spec.main, spec.main.image, spec.main.env,
+   * spec.main.requests, spec.main.limits, spec.scaling, spec.placement and
+   * spec.rollout, each optionally prefixed
    * with "object.". A path replaces that field as a whole. A path below
    * metadata.labels, metadata.annotations, spec.model, spec.router,
    * spec.main.env, spec.main.requests, spec.main.limits, spec.scaling,
@@ -334,6 +335,137 @@ export const ModelsListPlacementClustersResponseSchema: GenMessage<ModelsListPla
   messageDesc(file_ai_grid_v1_models_service, 13);
 
 /**
+ * Request of ListServingOptions. Empty.
+ *
+ * @generated from message ai_grid.v1.ModelsListServingOptionsRequest
+ */
+export type ModelsListServingOptionsRequest = Message<"ai_grid.v1.ModelsListServingOptionsRequest"> & {
+};
+
+/**
+ * Describes the message ai_grid.v1.ModelsListServingOptionsRequest.
+ * Use `create(ModelsListServingOptionsRequestSchema)` to create a new message.
+ */
+export const ModelsListServingOptionsRequestSchema: GenMessage<ModelsListServingOptionsRequest> = /*@__PURE__*/
+  messageDesc(file_ai_grid_v1_models_service, 14);
+
+/**
+ * Response of ListServingOptions: the model servers and hardware profiles a
+ * model can use, from the list the backend is configured with
+ * (AI_GRID_SERVING_OPTIONS_FILE; the console's Helm chart ships OpenShift
+ * AI's defaults). The list is the same for every cluster, and the backend
+ * doesn't read the clusters: OpenShift AI installs on each cluster only the
+ * accelerator presets its nodes can run, so a model that names a GPU preset
+ * fails on a cluster without that accelerator, and its status says so.
+ * Without a configured list both lists are empty.
+ *
+ * @generated from message ai_grid.v1.ModelsListServingOptionsResponse
+ */
+export type ModelsListServingOptionsResponse = Message<"ai_grid.v1.ModelsListServingOptionsResponse"> & {
+  /**
+   * @generated from field: repeated ai_grid.v1.ModelServerOption model_servers = 1;
+   */
+  modelServers: ModelServerOption[];
+
+  /**
+   * @generated from field: repeated ai_grid.v1.HardwareProfileOption hardware_profiles = 2;
+   */
+  hardwareProfiles: HardwareProfileOption[];
+};
+
+/**
+ * Describes the message ai_grid.v1.ModelsListServingOptionsResponse.
+ * Use `create(ModelsListServingOptionsResponseSchema)` to create a new message.
+ */
+export const ModelsListServingOptionsResponseSchema: GenMessage<ModelsListServingOptionsResponse> = /*@__PURE__*/
+  messageDesc(file_ai_grid_v1_models_service, 15);
+
+/**
+ * A model server: an OpenShift AI accelerator preset, an
+ * LLMInferenceServiceConfig in the clusters' OpenShift AI namespace labelled
+ * opendatahub.io/config-type=accelerator.
+ *
+ * @generated from message ai_grid.v1.ModelServerOption
+ */
+export type ModelServerOption = Message<"ai_grid.v1.ModelServerOption"> & {
+  /**
+   * The preset's full name, release prefix included (such as
+   * v3-6-0-kserve-config-llm-template-cpu): the value spec.base_refs takes.
+   *
+   * @generated from field: string name = 1;
+   */
+  name: string;
+
+  /**
+   * @generated from field: string display_name = 2;
+   */
+  displayName: string;
+
+  /**
+   * @generated from field: string description = 3;
+   */
+  description: string;
+
+  /**
+   * Extended resources the preset needs on a node, such as nvidia.com/gpu
+   * (its opendatahub.io/recommended-accelerators). Empty: it runs on CPUs,
+   * and every cluster has it.
+   *
+   * @generated from field: repeated string accelerators = 4;
+   */
+  accelerators: string[];
+};
+
+/**
+ * Describes the message ai_grid.v1.ModelServerOption.
+ * Use `create(ModelServerOptionSchema)` to create a new message.
+ */
+export const ModelServerOptionSchema: GenMessage<ModelServerOption> = /*@__PURE__*/
+  messageDesc(file_ai_grid_v1_models_service, 16);
+
+/**
+ * A HardwareProfile a model can name in spec.hardware_profile.
+ *
+ * @generated from message ai_grid.v1.HardwareProfileOption
+ */
+export type HardwareProfileOption = Message<"ai_grid.v1.HardwareProfileOption"> & {
+  /**
+   * @generated from field: string name = 1;
+   */
+  name: string;
+
+  /**
+   * @generated from field: string namespace = 2;
+   */
+  namespace: string;
+
+  /**
+   * @generated from field: string display_name = 3;
+   */
+  displayName: string;
+
+  /**
+   * @generated from field: string description = 4;
+   */
+  description: string;
+
+  /**
+   * Resources the profile sets, its spec.identifiers (such as cpu, memory,
+   * nvidia.com/gpu).
+   *
+   * @generated from field: repeated string resources = 5;
+   */
+  resources: string[];
+};
+
+/**
+ * Describes the message ai_grid.v1.HardwareProfileOption.
+ * Use `create(HardwareProfileOptionSchema)` to create a new message.
+ */
+export const HardwareProfileOptionSchema: GenMessage<HardwareProfileOption> = /*@__PURE__*/
+  messageDesc(file_ai_grid_v1_models_service, 17);
+
+/**
  * Models manage LLMInferenceService deployments in the backend's Git catalog,
  * placed on clusters by name. Create also writes the ExternalModel and
  * MaaSModelRef that register the model on the ingress clusters.
@@ -413,6 +545,17 @@ export const Models: GenService<{
     methodKind: "unary";
     input: typeof ModelsListPlacementClustersRequestSchema;
     output: typeof ModelsListPlacementClustersResponseSchema;
+  },
+  /**
+   * Model servers and hardware profiles a model can use. See
+   * ModelsListServingOptionsResponse.
+   *
+   * @generated from rpc ai_grid.v1.Models.ListServingOptions
+   */
+  listServingOptions: {
+    methodKind: "unary";
+    input: typeof ModelsListServingOptionsRequestSchema;
+    output: typeof ModelsListServingOptionsResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_ai_grid_v1_models_service, 0);

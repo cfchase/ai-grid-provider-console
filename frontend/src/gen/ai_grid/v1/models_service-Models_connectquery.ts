@@ -55,3 +55,11 @@ export const listLocations = Models.method.listLocations;
  * @generated from rpc ai_grid.v1.Models.ListPlacementClusters
  */
 export const listPlacementClusters = Models.method.listPlacementClusters;
+
+/**
+ * Model servers and hardware profiles a model can use. See
+ * ModelsListServingOptionsResponse.
+ *
+ * @generated from rpc ai_grid.v1.Models.ListServingOptions
+ */
+export const listServingOptions = Models.method.listServingOptions;

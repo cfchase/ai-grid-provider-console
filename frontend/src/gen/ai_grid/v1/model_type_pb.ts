@@ -15,7 +15,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai_grid/v1/model_type.proto.
  */
 export const file_ai_grid_v1_model_type: GenFile = /*@__PURE__*/
-  fileDesc("ChthaV9ncmlkL3YxL21vZGVsX3R5cGUucHJvdG8SCmFpX2dyaWQudjEiugEKBU1vZGVsEjsKAmlkGAEgASgJQi+6SCxyKhABGD8yJF5bYS16MC05XShbYS16MC05LV17MCw2MX1bYS16MC05XSk/JBImCghtZXRhZGF0YRgCIAEoCzIULmFpX2dyaWQudjEuTWV0YWRhdGESIwoEc3BlYxgDIAEoCzIVLmFpX2dyaWQudjEuTW9kZWxTcGVjEicKBnN0YXR1cxgEIAEoCzIXLmFpX2dyaWQudjEuTW9kZWxTdGF0dXMijgQKCU1vZGVsU3BlYxImCgVtb2RlbBgBIAEoCzIXLmFpX2dyaWQudjEuTW9kZWxTb3VyY2USFQoIcmVwbGljYXMYAiABKAVIAIgBARIkCgliYXNlX3JlZnMYAyADKAlCEbpIDpIBCyIJcgcyBV5cUyskEg8KB3J1bnRpbWUYBCABKAkSJwoGcm91dGVyGAUgASgLMhcuYWlfZ3JpZC52MS5Nb2RlbFJvdXRlchIoCgRtYWluGAYgASgLMhouYWlfZ3JpZC52MS5Nb2RlbENvbnRhaW5lchIpCgdzY2FsaW5nGAcgASgLMhguYWlfZ3JpZC52MS5Nb2RlbFNjYWxpbmcSLQoJcGxhY2VtZW50GAggASgLMhouYWlfZ3JpZC52MS5Nb2RlbFBsYWNlbWVudBIpCgdyb2xsb3V0GAkgASgLMhguYWlfZ3JpZC52MS5Nb2RlbFJvbGxvdXQ6pQG6SKEBGp4BChVtb2RlbF9zcGVjLm1haW5faW1hZ2USP3NwZWMubWFpbi5pbWFnZSBpcyByZXF1aXJlZCB3aGVuIHNwZWMuYmFzZV9yZWZzIG5hbWVzIG5vIHByZXNldBpEIWhhcyh0aGlzLm1haW4pIHx8IHRoaXMubWFpbi5pbWFnZSAhPSAnJyB8fCBzaXplKHRoaXMuYmFzZV9yZWZzKSA+IDBCCwoJX3JlcGxpY2FzIjgKC01vZGVsU291cmNlEhcKA3VyaRgBIAEoCUIKukgHcgUQARiAEBIQCgRuYW1lGAIgASgJQgIYASJqCgtNb2RlbFJvdXRlchIxCgxnYXRld2F5X3JlZnMYASADKAsyGy5haV9ncmlkLnYxLk1vZGVsR2F0ZXdheVJlZhIVCg1tYW5hZ2VkX3JvdXRlGAIgASgIEhEKCXNjaGVkdWxlchgDIAEoCCJICg9Nb2RlbEdhdGV3YXlSZWYSDAoEbmFtZRgBIAEoCRIRCgluYW1lc3BhY2UYAiABKAkSFAoMc2VjdGlvbl9uYW1lGAMgASgJIo0DCg5Nb2RlbENvbnRhaW5lchINCgVpbWFnZRgBIAEoCRJ0CghyZXF1ZXN0cxgCIAMoCzIoLmFpX2dyaWQudjEuTW9kZWxDb250YWluZXIuUmVxdWVzdHNFbnRyeUI4ukg1mgEyIgRyAhABKipyKDImXlwrP1swLTkuXStbZUVpbnVta0tNR1RQXSpbLStdP1swLTldKiQScAoGbGltaXRzGAMgAygLMiYuYWlfZ3JpZC52MS5Nb2RlbENvbnRhaW5lci5MaW1pdHNFbnRyeUI4ukg1mgEyIgRyAhABKipyKDImXlwrP1swLTkuXStbZUVpbnVta0tNR1RQXSpbLStdP1swLTldKiQSJAoDZW52GAQgAygLMhcuYWlfZ3JpZC52MS5Nb2RlbEVudlZhchovCg1SZXF1ZXN0c0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEaLQoLTGltaXRzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASIqCgtNb2RlbEVudlZhchIMCgRuYW1lGAEgASgJEg0KBXZhbHVlGAIgASgJIngKDE1vZGVsU2NhbGluZxIUCgxtaW5fcmVwbGljYXMYASABKAUSFAoMbWF4X3JlcGxpY2FzGAIgASgFEgwKBGtlZGEYAyABKAgSLgoIdHJpZ2dlcnMYBCADKAsyHC5haV9ncmlkLnYxLk1vZGVsS2VkYVRyaWdnZXIijwEKEE1vZGVsS2VkYVRyaWdnZXISDAoEdHlwZRgBIAEoCRI8CghtZXRhZGF0YRgCIAMoCzIqLmFpX2dyaWQudjEuTW9kZWxLZWRhVHJpZ2dlci5NZXRhZGF0YUVudHJ5Gi8KDU1ldGFkYXRhRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASKWAQoOTW9kZWxQbGFjZW1lbnQSFAoMY2x1c3Rlcl9zZXRzGAEgAygJEjYKDmxhYmVsX3NlbGVjdG9yGAIgASgLMh4uYWlfZ3JpZC52MS5Nb2RlbExhYmVsU2VsZWN0b3ISHwoSbnVtYmVyX29mX2NsdXN0ZXJzGAMgASgFSACIAQFCFQoTX251bWJlcl9vZl9jbHVzdGVycyLVAQoSTW9kZWxMYWJlbFNlbGVjdG9yEkUKDG1hdGNoX2xhYmVscxgBIAMoCzIvLmFpX2dyaWQudjEuTW9kZWxMYWJlbFNlbGVjdG9yLk1hdGNoTGFiZWxzRW50cnkSRAoRbWF0Y2hfZXhwcmVzc2lvbnMYAiADKAsyKS5haV9ncmlkLnYxLk1vZGVsTGFiZWxTZWxlY3RvclJlcXVpcmVtZW50GjIKEE1hdGNoTGFiZWxzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASJOCh1Nb2RlbExhYmVsU2VsZWN0b3JSZXF1aXJlbWVudBILCgNrZXkYASABKAkSEAoIb3BlcmF0b3IYAiABKAkSDgoGdmFsdWVzGAMgAygJIqYBCgxNb2RlbFJvbGxvdXQSMgoIc3RyYXRlZ3kYASABKA4yIC5haV9ncmlkLnYxLk1vZGVsUm9sbG91dFN0cmF0ZWd5EhcKD21heF9jb25jdXJyZW5jeRgCIAEoCRIUCgxtYXhfZmFpbHVyZXMYAyABKAkSGQoRcHJvZ3Jlc3NfZGVhZGxpbmUYBCABKAkSGAoQbWluX3N1Y2Nlc3NfdGltZRgFIAEoCSLCAgoLTW9kZWxTdGF0dXMSCwoDdXJsGAEgASgJEikKCmNvbmRpdGlvbnMYAiADKAsyFS5haV9ncmlkLnYxLkNvbmRpdGlvbhIlCgVwaGFzZRgDIAEoDjIWLmFpX2dyaWQudjEuTW9kZWxQaGFzZRIOCgZyZWFzb24YBCABKAkSDwoHbWVzc2FnZRgFIAEoCRIzCglwbGFjZW1lbnQYBiABKAsyIC5haV9ncmlkLnYxLk1vZGVsUGxhY2VtZW50U3RhdHVzEi8KB3JvbGxvdXQYByABKAsyHi5haV9ncmlkLnYxLk1vZGVsUm9sbG91dFN0YXR1cxIbChNvYnNlcnZlZF9nZW5lcmF0aW9uGAggASgDEjAKCGNsdXN0ZXJzGAkgAygLMh4uYWlfZ3JpZC52MS5Nb2RlbENsdXN0ZXJTdGF0dXMitQEKEk1vZGVsQ2x1c3RlclN0YXR1cxJACgdjbHVzdGVyGAEgASgJQi+6SCxyKhABGD8yJF5bYS16MC05XShbYS16MC05LV17MCw2MX1bYS16MC05XSk/JBIzCgVwaGFzZRgCIAEoDjIWLmFpX2dyaWQudjEuTW9kZWxQaGFzZUIMukgJggEGEAEgACAEEhcKBnJlYXNvbhgDIAEoCUIHukgEcgIQARIPCgdtZXNzYWdlGAQgASgJIpQBChRNb2RlbFBsYWNlbWVudFN0YXR1cxIjChtudW1iZXJfb2Zfc2VsZWN0ZWRfY2x1c3RlcnMYASABKAUSGQoRc2VsZWN0ZWRfY2x1c3RlcnMYAiADKAkSKQoKY29uZGl0aW9ucxgDIAMoCzIVLmFpX2dyaWQudjEuQ29uZGl0aW9uEhEKCWxvY2F0aW9ucxgEIAMoCSKgAQoSTW9kZWxSb2xsb3V0U3RhdHVzEhIKCnJvbGxlZF9vdXQYASABKAgSDwoHYXBwbGllZBgCIAEoCBIOCgZyZWFzb24YAyABKAkSKgoFd29ya3MYBCADKAsyGy5haV9ncmlkLnYxLk1vZGVsV29ya1N0YXR1cxIpCgpjb25kaXRpb25zGAUgAygLMhUuYWlfZ3JpZC52MS5Db25kaXRpb24ibQoPTW9kZWxXb3JrU3RhdHVzEg8KB2NsdXN0ZXIYASABKAkSDwoHYXBwbGllZBgCIAEoCRIRCglhdmFpbGFibGUYAyABKAkSEwoLcHJvZ3Jlc3NpbmcYBCABKAkSEAoIZGVncmFkZWQYBSABKAkquAEKFE1vZGVsUm9sbG91dFN0cmF0ZWd5EiYKIk1PREVMX1JPTExPVVRfU1RSQVRFR1lfVU5TUEVDSUZJRUQQABIeChpNT0RFTF9ST0xMT1VUX1NUUkFURUdZX0FMTBABEiYKIk1PREVMX1JPTExPVVRfU1RSQVRFR1lfUFJPR1JFU1NJVkUQAhIwCixNT0RFTF9ST0xMT1VUX1NUUkFURUdZX1BST0dSRVNTSVZFX1BFUl9HUk9VUBADKpYBCgpNb2RlbFBoYXNlEhsKF01PREVMX1BIQVNFX1VOU1BFQ0lGSUVEEAASFwoTTU9ERUxfUEhBU0VfUEVORElORxABEhUKEU1PREVMX1BIQVNFX1JFQURZEAISFgoSTU9ERUxfUEhBU0VfRkFJTEVEEAMSIwofTU9ERUxfUEhBU0VfUEFSVElBTExZX0FWQUlMQUJMRRAEQkpaSGdpdGh1Yi5jb20vb3NhYy1wcm9qZWN0L2FpLWdyaWQtcHJvdmlkZXItYmFja2VuZC9nZW4vYWlfZ3JpZC92MTthaWdyaWR2MWIGcHJvdG8z", [file_ai_grid_v1_condition_type, file_ai_grid_v1_metadata_type, file_buf_validate_validate]);
+  fileDesc("ChthaV9ncmlkL3YxL21vZGVsX3R5cGUucHJvdG8SCmFpX2dyaWQudjEiugEKBU1vZGVsEjsKAmlkGAEgASgJQi+6SCxyKhABGD8yJF5bYS16MC05XShbYS16MC05LV17MCw2MX1bYS16MC05XSk/JBImCghtZXRhZGF0YRgCIAEoCzIULmFpX2dyaWQudjEuTWV0YWRhdGESIwoEc3BlYxgDIAEoCzIVLmFpX2dyaWQudjEuTW9kZWxTcGVjEicKBnN0YXR1cxgEIAEoCzIXLmFpX2dyaWQudjEuTW9kZWxTdGF0dXMiygQKCU1vZGVsU3BlYxImCgVtb2RlbBgBIAEoCzIXLmFpX2dyaWQudjEuTW9kZWxTb3VyY2USFQoIcmVwbGljYXMYAiABKAVIAIgBARIkCgliYXNlX3JlZnMYAyADKAlCEbpIDpIBCyIJcgcyBV5cUyskEg8KB3J1bnRpbWUYBCABKAkSJwoGcm91dGVyGAUgASgLMhcuYWlfZ3JpZC52MS5Nb2RlbFJvdXRlchIoCgRtYWluGAYgASgLMhouYWlfZ3JpZC52MS5Nb2RlbENvbnRhaW5lchIpCgdzY2FsaW5nGAcgASgLMhguYWlfZ3JpZC52MS5Nb2RlbFNjYWxpbmcSLQoJcGxhY2VtZW50GAggASgLMhouYWlfZ3JpZC52MS5Nb2RlbFBsYWNlbWVudBIpCgdyb2xsb3V0GAkgASgLMhguYWlfZ3JpZC52MS5Nb2RlbFJvbGxvdXQSOgoQaGFyZHdhcmVfcHJvZmlsZRgKIAEoCzIgLmFpX2dyaWQudjEuTW9kZWxIYXJkd2FyZVByb2ZpbGU6pQG6SKEBGp4BChVtb2RlbF9zcGVjLm1haW5faW1hZ2USP3NwZWMubWFpbi5pbWFnZSBpcyByZXF1aXJlZCB3aGVuIHNwZWMuYmFzZV9yZWZzIG5hbWVzIG5vIHByZXNldBpEIWhhcyh0aGlzLm1haW4pIHx8IHRoaXMubWFpbi5pbWFnZSAhPSAnJyB8fCBzaXplKHRoaXMuYmFzZV9yZWZzKSA+IDBCCwoJX3JlcGxpY2FzIoYBChRNb2RlbEhhcmR3YXJlUHJvZmlsZRJbCgRuYW1lGAEgASgJQk26SEpySBABGP0BMkFeW2EtejAtOV0oWy1hLXowLTldKlthLXowLTldKT8oXC5bYS16MC05XShbLWEtejAtOV0qW2EtejAtOV0pPykqJBIRCgluYW1lc3BhY2UYAiABKAkiOAoLTW9kZWxTb3VyY2USFwoDdXJpGAEgASgJQgq6SAdyBRABGIAQEhAKBG5hbWUYAiABKAlCAhgBImoKC01vZGVsUm91dGVyEjEKDGdhdGV3YXlfcmVmcxgBIAMoCzIbLmFpX2dyaWQudjEuTW9kZWxHYXRld2F5UmVmEhUKDW1hbmFnZWRfcm91dGUYAiABKAgSEQoJc2NoZWR1bGVyGAMgASgIIkgKD01vZGVsR2F0ZXdheVJlZhIMCgRuYW1lGAEgASgJEhEKCW5hbWVzcGFjZRgCIAEoCRIUCgxzZWN0aW9uX25hbWUYAyABKAkijQMKDk1vZGVsQ29udGFpbmVyEg0KBWltYWdlGAEgASgJEnQKCHJlcXVlc3RzGAIgAygLMiguYWlfZ3JpZC52MS5Nb2RlbENvbnRhaW5lci5SZXF1ZXN0c0VudHJ5Qji6SDWaATIiBHICEAEqKnIoMiZeXCs/WzAtOS5dK1tlRWludW1rS01HVFBdKlstK10/WzAtOV0qJBJwCgZsaW1pdHMYAyADKAsyJi5haV9ncmlkLnYxLk1vZGVsQ29udGFpbmVyLkxpbWl0c0VudHJ5Qji6SDWaATIiBHICEAEqKnIoMiZeXCs/WzAtOS5dK1tlRWludW1rS01HVFBdKlstK10/WzAtOV0qJBIkCgNlbnYYBCADKAsyFy5haV9ncmlkLnYxLk1vZGVsRW52VmFyGi8KDVJlcXVlc3RzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ARotCgtMaW1pdHNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIioKC01vZGVsRW52VmFyEgwKBG5hbWUYASABKAkSDQoFdmFsdWUYAiABKAkieAoMTW9kZWxTY2FsaW5nEhQKDG1pbl9yZXBsaWNhcxgBIAEoBRIUCgxtYXhfcmVwbGljYXMYAiABKAUSDAoEa2VkYRgDIAEoCBIuCgh0cmlnZ2VycxgEIAMoCzIcLmFpX2dyaWQudjEuTW9kZWxLZWRhVHJpZ2dlciKPAQoQTW9kZWxLZWRhVHJpZ2dlchIMCgR0eXBlGAEgASgJEjwKCG1ldGFkYXRhGAIgAygLMiouYWlfZ3JpZC52MS5Nb2RlbEtlZGFUcmlnZ2VyLk1ldGFkYXRhRW50cnkaLwoNTWV0YWRhdGFFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIpYBCg5Nb2RlbFBsYWNlbWVudBIUCgxjbHVzdGVyX3NldHMYASADKAkSNgoObGFiZWxfc2VsZWN0b3IYAiABKAsyHi5haV9ncmlkLnYxLk1vZGVsTGFiZWxTZWxlY3RvchIfChJudW1iZXJfb2ZfY2x1c3RlcnMYAyABKAVIAIgBAUIVChNfbnVtYmVyX29mX2NsdXN0ZXJzItUBChJNb2RlbExhYmVsU2VsZWN0b3ISRQoMbWF0Y2hfbGFiZWxzGAEgAygLMi8uYWlfZ3JpZC52MS5Nb2RlbExhYmVsU2VsZWN0b3IuTWF0Y2hMYWJlbHNFbnRyeRJEChFtYXRjaF9leHByZXNzaW9ucxgCIAMoCzIpLmFpX2dyaWQudjEuTW9kZWxMYWJlbFNlbGVjdG9yUmVxdWlyZW1lbnQaMgoQTWF0Y2hMYWJlbHNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIk4KHU1vZGVsTGFiZWxTZWxlY3RvclJlcXVpcmVtZW50EgsKA2tleRgBIAEoCRIQCghvcGVyYXRvchgCIAEoCRIOCgZ2YWx1ZXMYAyADKAkipgEKDE1vZGVsUm9sbG91dBIyCghzdHJhdGVneRgBIAEoDjIgLmFpX2dyaWQudjEuTW9kZWxSb2xsb3V0U3RyYXRlZ3kSFwoPbWF4X2NvbmN1cnJlbmN5GAIgASgJEhQKDG1heF9mYWlsdXJlcxgDIAEoCRIZChFwcm9ncmVzc19kZWFkbGluZRgEIAEoCRIYChBtaW5fc3VjY2Vzc190aW1lGAUgASgJIsICCgtNb2RlbFN0YXR1cxILCgN1cmwYASABKAkSKQoKY29uZGl0aW9ucxgCIAMoCzIVLmFpX2dyaWQudjEuQ29uZGl0aW9uEiUKBXBoYXNlGAMgASgOMhYuYWlfZ3JpZC52MS5Nb2RlbFBoYXNlEg4KBnJlYXNvbhgEIAEoCRIPCgdtZXNzYWdlGAUgASgJEjMKCXBsYWNlbWVudBgGIAEoCzIgLmFpX2dyaWQudjEuTW9kZWxQbGFjZW1lbnRTdGF0dXMSLwoHcm9sbG91dBgHIAEoCzIeLmFpX2dyaWQudjEuTW9kZWxSb2xsb3V0U3RhdHVzEhsKE29ic2VydmVkX2dlbmVyYXRpb24YCCABKAMSMAoIY2x1c3RlcnMYCSADKAsyHi5haV9ncmlkLnYxLk1vZGVsQ2x1c3RlclN0YXR1cyK1AQoSTW9kZWxDbHVzdGVyU3RhdHVzEkAKB2NsdXN0ZXIYASABKAlCL7pILHIqEAEYPzIkXlthLXowLTldKFthLXowLTktXXswLDYxfVthLXowLTldKT8kEjMKBXBoYXNlGAIgASgOMhYuYWlfZ3JpZC52MS5Nb2RlbFBoYXNlQgy6SAmCAQYQASAAIAQSFwoGcmVhc29uGAMgASgJQge6SARyAhABEg8KB21lc3NhZ2UYBCABKAkilAEKFE1vZGVsUGxhY2VtZW50U3RhdHVzEiMKG251bWJlcl9vZl9zZWxlY3RlZF9jbHVzdGVycxgBIAEoBRIZChFzZWxlY3RlZF9jbHVzdGVycxgCIAMoCRIpCgpjb25kaXRpb25zGAMgAygLMhUuYWlfZ3JpZC52MS5Db25kaXRpb24SEQoJbG9jYXRpb25zGAQgAygJIqABChJNb2RlbFJvbGxvdXRTdGF0dXMSEgoKcm9sbGVkX291dBgBIAEoCBIPCgdhcHBsaWVkGAIgASgIEg4KBnJlYXNvbhgDIAEoCRIqCgV3b3JrcxgEIAMoCzIbLmFpX2dyaWQudjEuTW9kZWxXb3JrU3RhdHVzEikKCmNvbmRpdGlvbnMYBSADKAsyFS5haV9ncmlkLnYxLkNvbmRpdGlvbiJtCg9Nb2RlbFdvcmtTdGF0dXMSDwoHY2x1c3RlchgBIAEoCRIPCgdhcHBsaWVkGAIgASgJEhEKCWF2YWlsYWJsZRgDIAEoCRITCgtwcm9ncmVzc2luZxgEIAEoCRIQCghkZWdyYWRlZBgFIAEoCSq4AQoUTW9kZWxSb2xsb3V0U3RyYXRlZ3kSJgoiTU9ERUxfUk9MTE9VVF9TVFJBVEVHWV9VTlNQRUNJRklFRBAAEh4KGk1PREVMX1JPTExPVVRfU1RSQVRFR1lfQUxMEAESJgoiTU9ERUxfUk9MTE9VVF9TVFJBVEVHWV9QUk9HUkVTU0lWRRACEjAKLE1PREVMX1JPTExPVVRfU1RSQVRFR1lfUFJPR1JFU1NJVkVfUEVSX0dST1VQEAMqlgEKCk1vZGVsUGhhc2USGwoXTU9ERUxfUEhBU0VfVU5TUEVDSUZJRUQQABIXChNNT0RFTF9QSEFTRV9QRU5ESU5HEAESFQoRTU9ERUxfUEhBU0VfUkVBRFkQAhIWChJNT0RFTF9QSEFTRV9GQUlMRUQQAxIjCh9NT0RFTF9QSEFTRV9QQVJUSUFMTFlfQVZBSUxBQkxFEARCSlpIZ2l0aHViLmNvbS9vc2FjLXByb2plY3QvYWktZ3JpZC1wcm92aWRlci1iYWNrZW5kL2dlbi9haV9ncmlkL3YxO2FpZ3JpZHYxYgZwcm90bzM", [file_ai_grid_v1_condition_type, file_ai_grid_v1_metadata_type, file_buf_validate_validate]);
 
 /**
  * Model is a deployable LLM inference workload on the AI Grid.
@@ -140,6 +140,22 @@ export type ModelSpec = Message<"ai_grid.v1.ModelSpec"> & {
    * @generated from field: ai_grid.v1.ModelRollout rollout = 9;
    */
   rollout?: ModelRollout | undefined;
+
+  /**
+   * OpenShift AI HardwareProfile the model runs with. Optional. The backend
+   * writes it as the deployment's annotations
+   * opendatahub.io/hardware-profile-name and
+   * opendatahub.io/hardware-profile-namespace, and OpenShift AI's webhook on
+   * each cluster sets the container's resources, node selector, tolerations
+   * and Kueue queue from the profile. With a profile, spec.main.requests and
+   * spec.main.limits must be empty, or the call is InvalidArgument: the
+   * webhook would replace them. When the backend has a serving options list
+   * (Models/ListServingOptions), the profile must be on it, or already be
+   * the model's, and an empty namespace takes the list's.
+   *
+   * @generated from field: ai_grid.v1.ModelHardwareProfile hardware_profile = 10;
+   */
+  hardwareProfile?: ModelHardwareProfile | undefined;
 };
 
 /**
@@ -148,6 +164,35 @@ export type ModelSpec = Message<"ai_grid.v1.ModelSpec"> & {
  */
 export const ModelSpecSchema: GenMessage<ModelSpec> = /*@__PURE__*/
   messageDesc(file_ai_grid_v1_model_type, 1);
+
+/**
+ * A HardwareProfile (infrastructure.opendatahub.io) by name.
+ *
+ * @generated from message ai_grid.v1.ModelHardwareProfile
+ */
+export type ModelHardwareProfile = Message<"ai_grid.v1.ModelHardwareProfile"> & {
+  /**
+   * metadata.name of the HardwareProfile: a DNS-1123 subdomain.
+   *
+   * @generated from field: string name = 1;
+   */
+  name: string;
+
+  /**
+   * Namespace of the HardwareProfile on the clusters, such as
+   * redhat-ods-applications. Empty takes the serving options list's.
+   *
+   * @generated from field: string namespace = 2;
+   */
+  namespace: string;
+};
+
+/**
+ * Describes the message ai_grid.v1.ModelHardwareProfile.
+ * Use `create(ModelHardwareProfileSchema)` to create a new message.
+ */
+export const ModelHardwareProfileSchema: GenMessage<ModelHardwareProfile> = /*@__PURE__*/
+  messageDesc(file_ai_grid_v1_model_type, 2);
 
 /**
  * Model artifact source (spec.model).
@@ -182,7 +227,7 @@ export type ModelSource = Message<"ai_grid.v1.ModelSource"> & {
  * Use `create(ModelSourceSchema)` to create a new message.
  */
 export const ModelSourceSchema: GenMessage<ModelSource> = /*@__PURE__*/
-  messageDesc(file_ai_grid_v1_model_type, 2);
+  messageDesc(file_ai_grid_v1_model_type, 3);
 
 /**
  * Router configuration (spec.router).
@@ -218,7 +263,7 @@ export type ModelRouter = Message<"ai_grid.v1.ModelRouter"> & {
  * Use `create(ModelRouterSchema)` to create a new message.
  */
 export const ModelRouterSchema: GenMessage<ModelRouter> = /*@__PURE__*/
-  messageDesc(file_ai_grid_v1_model_type, 3);
+  messageDesc(file_ai_grid_v1_model_type, 4);
 
 /**
  * One gateway reference.
@@ -247,7 +292,7 @@ export type ModelGatewayRef = Message<"ai_grid.v1.ModelGatewayRef"> & {
  * Use `create(ModelGatewayRefSchema)` to create a new message.
  */
 export const ModelGatewayRefSchema: GenMessage<ModelGatewayRef> = /*@__PURE__*/
-  messageDesc(file_ai_grid_v1_model_type, 4);
+  messageDesc(file_ai_grid_v1_model_type, 5);
 
 /**
  * Main container resources and environment.
@@ -312,7 +357,7 @@ export type ModelContainer = Message<"ai_grid.v1.ModelContainer"> & {
  * Use `create(ModelContainerSchema)` to create a new message.
  */
 export const ModelContainerSchema: GenMessage<ModelContainer> = /*@__PURE__*/
-  messageDesc(file_ai_grid_v1_model_type, 5);
+  messageDesc(file_ai_grid_v1_model_type, 6);
 
 /**
  * One environment variable.
@@ -336,7 +381,7 @@ export type ModelEnvVar = Message<"ai_grid.v1.ModelEnvVar"> & {
  * Use `create(ModelEnvVarSchema)` to create a new message.
  */
 export const ModelEnvVarSchema: GenMessage<ModelEnvVar> = /*@__PURE__*/
-  messageDesc(file_ai_grid_v1_model_type, 6);
+  messageDesc(file_ai_grid_v1_model_type, 7);
 
 /**
  * KEDA-based autoscaling.
@@ -378,7 +423,7 @@ export type ModelScaling = Message<"ai_grid.v1.ModelScaling"> & {
  * Use `create(ModelScalingSchema)` to create a new message.
  */
 export const ModelScalingSchema: GenMessage<ModelScaling> = /*@__PURE__*/
-  messageDesc(file_ai_grid_v1_model_type, 7);
+  messageDesc(file_ai_grid_v1_model_type, 8);
 
 /**
  * One KEDA scale trigger.
@@ -402,7 +447,7 @@ export type ModelKedaTrigger = Message<"ai_grid.v1.ModelKedaTrigger"> & {
  * Use `create(ModelKedaTriggerSchema)` to create a new message.
  */
 export const ModelKedaTriggerSchema: GenMessage<ModelKedaTrigger> = /*@__PURE__*/
-  messageDesc(file_ai_grid_v1_model_type, 8);
+  messageDesc(file_ai_grid_v1_model_type, 9);
 
 /**
  * ACM Placement desired state (subset used by the Models API).
@@ -437,7 +482,7 @@ export type ModelPlacement = Message<"ai_grid.v1.ModelPlacement"> & {
  * Use `create(ModelPlacementSchema)` to create a new message.
  */
 export const ModelPlacementSchema: GenMessage<ModelPlacement> = /*@__PURE__*/
-  messageDesc(file_ai_grid_v1_model_type, 9);
+  messageDesc(file_ai_grid_v1_model_type, 10);
 
 /**
  * Label selector for Placement predicates.
@@ -461,7 +506,7 @@ export type ModelLabelSelector = Message<"ai_grid.v1.ModelLabelSelector"> & {
  * Use `create(ModelLabelSelectorSchema)` to create a new message.
  */
 export const ModelLabelSelectorSchema: GenMessage<ModelLabelSelector> = /*@__PURE__*/
-  messageDesc(file_ai_grid_v1_model_type, 10);
+  messageDesc(file_ai_grid_v1_model_type, 11);
 
 /**
  * One label selector requirement.
@@ -492,7 +537,7 @@ export type ModelLabelSelectorRequirement = Message<"ai_grid.v1.ModelLabelSelect
  * Use `create(ModelLabelSelectorRequirementSchema)` to create a new message.
  */
 export const ModelLabelSelectorRequirementSchema: GenMessage<ModelLabelSelectorRequirement> = /*@__PURE__*/
-  messageDesc(file_ai_grid_v1_model_type, 11);
+  messageDesc(file_ai_grid_v1_model_type, 12);
 
 /**
  * ManifestWorkReplicaSet rollout strategy.
@@ -539,7 +584,7 @@ export type ModelRollout = Message<"ai_grid.v1.ModelRollout"> & {
  * Use `create(ModelRolloutSchema)` to create a new message.
  */
 export const ModelRolloutSchema: GenMessage<ModelRollout> = /*@__PURE__*/
-  messageDesc(file_ai_grid_v1_model_type, 12);
+  messageDesc(file_ai_grid_v1_model_type, 13);
 
 /**
  * Observed state of a Model.
@@ -627,7 +672,7 @@ export type ModelStatus = Message<"ai_grid.v1.ModelStatus"> & {
  * Use `create(ModelStatusSchema)` to create a new message.
  */
 export const ModelStatusSchema: GenMessage<ModelStatus> = /*@__PURE__*/
-  messageDesc(file_ai_grid_v1_model_type, 13);
+  messageDesc(file_ai_grid_v1_model_type, 14);
 
 /**
  * The model on one placed cluster. In git mode it comes from the hub's
@@ -677,7 +722,7 @@ export type ModelClusterStatus = Message<"ai_grid.v1.ModelClusterStatus"> & {
  * Use `create(ModelClusterStatusSchema)` to create a new message.
  */
 export const ModelClusterStatusSchema: GenMessage<ModelClusterStatus> = /*@__PURE__*/
-  messageDesc(file_ai_grid_v1_model_type, 14);
+  messageDesc(file_ai_grid_v1_model_type, 15);
 
 /**
  * Placement observed state.
@@ -724,7 +769,7 @@ export type ModelPlacementStatus = Message<"ai_grid.v1.ModelPlacementStatus"> & 
  * Use `create(ModelPlacementStatusSchema)` to create a new message.
  */
 export const ModelPlacementStatusSchema: GenMessage<ModelPlacementStatus> = /*@__PURE__*/
-  messageDesc(file_ai_grid_v1_model_type, 15);
+  messageDesc(file_ai_grid_v1_model_type, 16);
 
 /**
  * ManifestWorkReplicaSet observed state.
@@ -774,7 +819,7 @@ export type ModelRolloutStatus = Message<"ai_grid.v1.ModelRolloutStatus"> & {
  * Use `create(ModelRolloutStatusSchema)` to create a new message.
  */
 export const ModelRolloutStatusSchema: GenMessage<ModelRolloutStatus> = /*@__PURE__*/
-  messageDesc(file_ai_grid_v1_model_type, 16);
+  messageDesc(file_ai_grid_v1_model_type, 17);
 
 /**
  * One generated ManifestWork summary.
@@ -813,7 +858,7 @@ export type ModelWorkStatus = Message<"ai_grid.v1.ModelWorkStatus"> & {
  * Use `create(ModelWorkStatusSchema)` to create a new message.
  */
 export const ModelWorkStatusSchema: GenMessage<ModelWorkStatus> = /*@__PURE__*/
-  messageDesc(file_ai_grid_v1_model_type, 17);
+  messageDesc(file_ai_grid_v1_model_type, 18);
 
 /**
  * Rollout strategy type.
