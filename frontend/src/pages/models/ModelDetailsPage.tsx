@@ -15,7 +15,7 @@ import { PARTIALLY_AVAILABLE, hasModelStatusDetails, modelPhase, modelStatusTitl
 import { titleOf } from './modelView';
 import { useDeleteModel } from './useDeleteModel';
 import { useModel } from './useModels';
-import { modelServerLabel, modelServerOf, PRESET_IMAGE } from './modelServers';
+import { hardwareProfileLabel, modelServerLabel, modelServerOf, PRESET_IMAGE, useServingOptions } from './modelServers';
 import { useClusterList } from '../clusters/useClusters';
 
 /** A model deployment at /models/:id: its status explained, its configuration and its locations. */
@@ -23,6 +23,8 @@ export const ModelDetailsPage: React.FC = () => {
   const { id = '' } = useParams();
   const navigate = useNavigate();
   const { data: loadedModel, loaded, error, refresh } = useModel(id);
+  // The model server's display name, when the backend's list has its preset.
+  const { data: servingOptions } = useServingOptions();
   const { data: clusters } = useClusterList();
   const { user } = useConsoleSession();
   // A 404 means the deployment is gone, even when an earlier answer is still held (PageStateSection
@@ -62,10 +64,11 @@ export const ModelDetailsPage: React.FC = () => {
               { term: 'Description', value: model.description },
               { term: 'Model', value: model.modelName },
               { term: 'Model URI', value: model.modelUri },
-              { term: 'Model server', value: modelServerLabel(model.baseRefs) || undefined },
+              { term: 'Model server', value: modelServerLabel(model.baseRefs, servingOptions.servers) || undefined },
+              { term: 'Hardware profile', value: hardwareProfileLabel(model.hardwareProfile, servingOptions.profiles) },
               {
                 term: 'Runtime image',
-                // As the wizard reads it: only a server the console knows sets the image.
+                // As the wizard reads it: a model on a preset may leave the image to it.
                 value: model.runtimeImage || (modelServerOf(model.baseRefs)?.setsImage ? PRESET_IMAGE : undefined),
               },
               { term: 'Replicas', value: model.autoscaled ? 'Autoscaled' : model.replicas },

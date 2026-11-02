@@ -73,6 +73,7 @@ var allowedProcedures = map[string]struct{}{
 	"/ai_grid.v1.Models/Update":                {},
 	"/ai_grid.v1.Models/Delete":                {},
 	"/ai_grid.v1.Models/ListPlacementClusters": {},
+	"/ai_grid.v1.Models/ListServingOptions":    {},
 	"/ai_grid.v1.Subscriptions/List":           {},
 	"/ai_grid.v1.Subscriptions/Get":            {},
 	"/ai_grid.v1.Subscriptions/Create":         {},

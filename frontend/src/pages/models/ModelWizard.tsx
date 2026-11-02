@@ -41,11 +41,19 @@ import { createModelSchema, fieldMessage } from '../../validation';
 import { RuntimeArgsField } from './fields/RuntimeArgsField';
 import { filterRuntimeArgsForContainer, runtimeArgsOf, type RuntimeArgsFieldData } from './fields/runtimeArgs';
 import { DEFAULT_REPLICAS, sameSet, updateRequestOf, type ModelInput } from './modelRequests';
-import { titleOf, type ModelView } from './modelView';
+import { REQUEST_GPU, titleOf, type ModelView } from './modelView';
 import { OlderServedNameAlert } from './OlderServedNameAlert';
 import { useModelWrites, usePlacementClusters } from './useModels';
 import { deploymentNameFromUri, locationLabel, modelPath, siteNamesOf } from './modelUtils';
-import { type ModelServer, modelServerLabel, modelServerOf, modelServers, PRESET_IMAGE } from './modelServers';
+import {
+  hardwareProfileLabel,
+  missingAccelerator,
+  modelServerLabel,
+  modelServerOf,
+  PRESET_IMAGE,
+  serverSuitsText,
+  useServingOptions,
+} from './modelServers';
 import { useClusterList } from '../clusters/useClusters';
 
 type Props = {
@@ -64,6 +72,8 @@ const defaults = { replicas: String(DEFAULT_REPLICAS), cpu: '2', memory: '4Gi', 
 
 /** A resource the model was deployed without, shown in its read-only field. */
 const NOT_SET = 'Not set';
+/** A resource a model's hardware profile sets on each cluster. */
+const BY_PROFILE = 'Set by the hardware profile';
 
 const fixedReason = {
   source: 'The model a deployment serves is fixed. Deploy a new model to serve another one.',
@@ -180,18 +190,30 @@ export const ModelWizard: React.FC<Props> = ({ model }) => {
   const [cpu, setCpu] = useState(start.cpu);
   const [memory, setMemory] = useState(start.memory);
   const [gpuCount, setGpuCount] = useState(start.gpuCount);
-  // A deployed model keeps its presets; the choice is only made when deploying.
-  // No default: the grid's sites can be GPU or CPU-only clusters, so the user picks one.
-  const [serverId, setServerId] = useState<ModelServer['id'] | ''>('');
-  const server = modelServers.find((s) => s.id === serverId);
-  const chooseServer = (id: ModelServer['id']) => {
-    setServerId(id);
+  // The model servers and hardware profiles the backend offers (Models/ListServingOptions).
+  const {
+    data: servingOptions,
+    loaded: servingOptionsLoaded,
+    error: servingOptionsError,
+    refresh: reloadServingOptions,
+  } = useServingOptions();
+  // A deployed model keeps its presets and profile; the choice is only made when deploying.
+  // No default server: the grid's clusters can have GPUs or not, so the user picks one.
+  const [serverName, setServerName] = useState('');
+  const server = servingOptions.servers.find((s) => s.name === serverName);
+  // Empty: no profile, and the wizard's own CPU, memory and GPU fields set the resources.
+  const [profileName, setProfileName] = useState('');
+  const profile = editing ? undefined : servingOptions.profiles.find((p) => p.name === profileName);
+  const editedProfile = hardwareProfileLabel(model?.hardwareProfile, servingOptions.profiles);
+  const chooseServer = (name: string) => {
+    setServerName(name);
     // A GPU server starts at one GPU (none is what crash-loops); a CPU server hides the field,
     // so it goes back to its default rather than keep a value nobody can see or fix.
-    if (!modelServers.find((s) => s.id === id)?.usesGpus) setGpuCount(defaults.gpuCount);
+    if (!servingOptions.servers.find((s) => s.name === name)?.usesGpus) setGpuCount(defaults.gpuCount);
     else if (gpuCount === defaults.gpuCount || gpuCount === '') setGpuCount('1');
   };
-  const usesGpus = editing || Boolean(server?.usesGpus);
+  // With a profile, the profile gives the GPUs.
+  const usesGpus = editing || (Boolean(server?.usesGpus) && !profile);
   const [runtimeArgs, setRuntimeArgs] = useState<RuntimeArgsFieldData>({
     enabled: start.runtimeArgs.length > 0,
     args: start.runtimeArgs,
@@ -214,7 +236,9 @@ export const ModelWizard: React.FC<Props> = ({ model }) => {
     // A CPU server asks for no GPUs, whatever the hidden field last held.
     gpuCount: usesGpus ? Number(gpuCount) : 0,
     runtimeArgs: filterRuntimeArgsForContainer(runtimeArgs.args),
-    baseRefs: model ? model.baseRefs : (server?.baseRefs ?? []),
+    baseRefs: model ? model.baseRefs : server ? [server.name] : [],
+    hardwareProfile: profile?.name,
+    gpuResource: server?.accelerators[0],
     clusters: locations,
   };
   const edited: ModelInput = { ...input, clusters: locationsEditable ? locations : start.locations };
@@ -225,7 +249,8 @@ export const ModelWizard: React.FC<Props> = ({ model }) => {
       cpu !== defaults.cpu ||
       memory !== defaults.memory ||
       gpuCount !== defaults.gpuCount ||
-      serverId !== '' ||
+      serverName !== '' ||
+      profileName !== '' ||
       runtimeArgs.enabled ||
       locations.length > 0;
   const detailsPath = model ? modelPath(model) : '';
@@ -239,8 +264,8 @@ export const ModelWizard: React.FC<Props> = ({ model }) => {
       : value.trim()
         ? fieldMessage(createModelSchema.shape[field], value, parse)
         : 'Required.';
-  // A server whose presets set the image (vLLM on CPU) lets the field stay empty: the preset's applies.
-  const imageOptional = Boolean((editing ? modelServerOf(model?.baseRefs) : server)?.setsImage);
+  // A model server's preset sets the image, so the field may stay empty and the preset's applies.
+  const imageOptional = editing ? Boolean(modelServerOf(model?.baseRefs)?.setsImage) : true;
   const imageFromPreset = imageOptional && runtimeImage.trim() === '';
   const modelUriError = shownError('modelUri', modelUri);
   const runtimeImageError = imageFromPreset ? undefined : shownError('runtimeImage', runtimeImage);
@@ -248,8 +273,14 @@ export const ModelWizard: React.FC<Props> = ({ model }) => {
   const cpuError = shownError('cpu', cpu);
   const memoryError = shownError('memory', memory);
   // KServe's GPU preset with no GPUs is what crash-loops on a CPU-only node.
-  const gpusMissing = !editing && Boolean(server?.usesGpus) && gpuCount !== '' && Number(gpuCount) < 1;
+  const gpusMissing = usesGpus && !editing && gpuCount !== '' && Number(gpuCount) < 1;
   const serverError = !editing && touched.has('server') && !server ? 'Required.' : undefined;
+  // A GPU server on a profile that gives no such accelerator would start without one.
+  const lacking = missingAccelerator(server, profile);
+  const profileError =
+    lacking && server && profile
+      ? `${profile.label} gives the model no ${lacking}, which ${server.label} needs. Select a profile with one, or no profile.`
+      : undefined;
   const gpuCountError =
     shownError('gpuCount', gpuCount, Number) ??
     (touched.has('gpuCount') && gpusMissing ? 'A GPU model server needs at least 1 GPU.' : undefined);
@@ -268,10 +299,14 @@ export const ModelWizard: React.FC<Props> = ({ model }) => {
         replicas === start.replicas ||
         (replicas !== '' && createModelSchema.shape.replicas.safeParse(input.replicas).success))
     : server !== undefined &&
+      !profileError &&
       replicas !== '' &&
-      gpuCount !== '' &&
-      !gpusMissing &&
-      createModelSchema.omit({ locations: true, runtimeImage: true }).strip().safeParse(input).success &&
+      (profile !== undefined || (gpuCount !== '' && !gpusMissing)) &&
+      createModelSchema
+        .omit({ locations: true, runtimeImage: true })
+        .strip()
+        // A profile sets the resources, so the hidden fields' values don't count.
+        .safeParse(profile ? { ...input, cpu: defaults.cpu, memory: defaults.memory, gpuCount: 0 } : input).success &&
       (imageFromPreset || createModelSchema.shape.runtimeImage.safeParse(input.runtimeImage).success);
   // An edit that keeps the locations doesn't depend on which locations are offered right now.
   const locationsChanged = !editing || !sameSet(locations, start.locations);
@@ -407,7 +442,8 @@ export const ModelWizard: React.FC<Props> = ({ model }) => {
   // A hint only, from the GPU counts the clusters list already carries: a GPU server on a cluster
   // with no GPUs never schedules, and a CPU server on a GPU cluster leaves its GPUs unused.
   const serverMismatch = (() => {
-    if (editing || !server) return undefined;
+    // The clusters' GPU counts are NVIDIA GPUs only, so they say nothing about another accelerator.
+    if (editing || !server || (server.usesGpus && !server.accelerators.includes(REQUEST_GPU))) return undefined;
     const chosen = clusters.filter(
       (c) => c.aiGridEnabled && (locations.includes(c.name) || (c.location && locations.includes(c.location))),
     );
@@ -439,12 +475,18 @@ export const ModelWizard: React.FC<Props> = ({ model }) => {
         { term: 'Model name', value: nameDescData.name },
         ...(model ? [] : [{ term: 'Model name in requests', value: nameDescData.k8sName.value }]),
         { term: 'Description', value: nameDescData.description },
-        { term: 'Model server', value: modelServerLabel(input.baseRefs) },
+        { term: 'Model server', value: modelServerLabel(input.baseRefs, servingOptions.servers) },
+        { term: 'Hardware profile', value: editing ? (editedProfile ?? 'None') : (profile?.label ?? 'None') },
         { term: 'Runtime image', value: imageFromPreset ? PRESET_IMAGE : runtimeImage },
         { term: 'Replicas', value: replicasEditable ? replicas : 'Autoscaled' },
-        { term: 'CPU', value: cpu },
-        { term: 'Memory', value: memory },
-        { term: 'GPUs', value: String(input.gpuCount) },
+        // A profile sets these on each cluster, for a new model or one deployed with a profile.
+        ...(profile || (editing && model?.hardwareProfile)
+          ? []
+          : [
+              { term: 'CPU', value: cpu },
+              { term: 'Memory', value: memory },
+              { term: 'GPUs', value: String(input.gpuCount) },
+            ]),
         { term: 'Additional runtime arguments', value: input.runtimeArgs.join(' ') },
       ],
     },
@@ -559,33 +601,79 @@ export const ModelWizard: React.FC<Props> = ({ model }) => {
                 }
               />
               {editing ? (
-                <ReadOnlyField
-                  label="Model server"
-                  fieldId="model-server"
-                  value={modelServerLabel(input.baseRefs)}
-                  reason={fixedReason.resources}
-                />
+                <>
+                  <ReadOnlyField
+                    label="Model server"
+                    fieldId="model-server"
+                    value={modelServerLabel(input.baseRefs, servingOptions.servers)}
+                    reason={fixedReason.resources}
+                  />
+                  <ReadOnlyField
+                    label="Hardware profile"
+                    fieldId="model-hardware-profile"
+                    value={editedProfile ?? 'None'}
+                    reason={fixedReason.resources}
+                  />
+                </>
+              ) : servingOptionsError ? (
+                <Alert
+                  isInline
+                  variant="danger"
+                  title="Error loading model servers"
+                  actionLinks={<AlertActionLink onClick={() => void reloadServingOptions()}>Retry</AlertActionLink>}
+                >
+                  {notAvailable(servingOptionsError, 'Model servers are') ?? servingOptionsError.message}
+                </Alert>
+              ) : !servingOptionsLoaded ? (
+                <p>Loading model servers...</p>
+              ) : servingOptions.servers.length === 0 ? (
+                <Alert isInline variant="warning" title="No model servers to offer">
+                  The console’s backend has no model servers configured. Set servingOptions in the console’s Helm chart.
+                </Alert>
               ) : (
-                <FormGroup label="Model server" fieldId="model-server" isRequired>
-                  <FormSelect
-                    id="model-server"
-                    aria-describedby="model-server-help"
-                    value={serverId}
-                    onChange={(_event, value) => chooseServer(value as ModelServer['id'])}
-                    onBlur={() => touch('server')}
-                    validated={serverError ? 'error' : 'default'}
-                    isRequired
-                  >
-                    <FormSelectOption isPlaceholder isDisabled value="" label="Select a model server" />
-                    {modelServers.map((s) => (
-                      <FormSelectOption key={s.id} value={s.id} label={s.label} />
-                    ))}
-                  </FormSelect>
-                  <Help id="model-server-help" error={serverError}>
-                    {server?.description ??
-                      'Select the model server that matches the hardware at the selected locations.'}
-                  </Help>
-                </FormGroup>
+                <>
+                  <FormGroup label="Model server" fieldId="model-server" isRequired>
+                    <FormSelect
+                      id="model-server"
+                      aria-describedby="model-server-help"
+                      // A choice a reload no longer lists shows as none, as the wizard then treats it.
+                      value={server?.name ?? ''}
+                      onChange={(_event, value) => chooseServer(value)}
+                      onBlur={() => touch('server')}
+                      validated={serverError ? 'error' : 'default'}
+                      isRequired
+                    >
+                      <FormSelectOption isPlaceholder isDisabled value="" label="Select a model server" />
+                      {servingOptions.servers.map((s) => (
+                        <FormSelectOption key={s.name} value={s.name} label={s.label} />
+                      ))}
+                    </FormSelect>
+                    <Help id="model-server-help" error={serverError}>
+                      {server
+                        ? `${server.description} ${serverSuitsText(server)}`.trim()
+                        : 'Select the model server that matches the hardware of the clusters you deploy to.'}
+                    </Help>
+                  </FormGroup>
+                  <FormGroup label="Hardware profile" fieldId="model-hardware-profile">
+                    <FormSelect
+                      id="model-hardware-profile"
+                      aria-describedby="model-hardware-profile-help"
+                      value={profile?.name ?? ''}
+                      onChange={(_event, value) => setProfileName(value)}
+                      validated={profileError ? 'error' : 'default'}
+                    >
+                      <FormSelectOption value="" label="None: set CPU, memory and GPUs here" />
+                      {servingOptions.profiles.map((p) => (
+                        <FormSelectOption key={p.name} value={p.name} label={p.label} />
+                      ))}
+                    </FormSelect>
+                    <Help id="model-hardware-profile-help" error={profileError}>
+                      {profile
+                        ? `${profile.description} The profile sets the model’s CPU, memory and accelerators on each cluster.`.trim()
+                        : "A hardware profile sets the model's resources on each cluster. Without one, set them here."}
+                    </Help>
+                  </FormGroup>
+                </>
               )}
               <FormGroup label="Runtime image" fieldId="runtime-image" isRequired={!imageOptional}>
                 <TextInput
@@ -600,7 +688,7 @@ export const ModelWizard: React.FC<Props> = ({ model }) => {
                 <Help id="runtime-image-help" error={runtimeImageError}>
                   {imageOptional
                     ? "Leave empty to use the model server's image. An image entered here replaces it."
-                    : 'Must match the model server. For example, use a vLLM CPU image for vLLM on CPU.'}
+                    : 'Must match the model server. For example, use a vLLM CPU image for vLLM CPU.'}
                 </Help>
               </FormGroup>
               {replicasEditable ? (
@@ -634,23 +722,23 @@ export const ModelWizard: React.FC<Props> = ({ model }) => {
                   <ReadOnlyField
                     label="CPU"
                     fieldId="deployment-cpu"
-                    value={cpu || NOT_SET}
+                    value={model?.hardwareProfile ? BY_PROFILE : cpu || NOT_SET}
                     reason={fixedReason.resources}
                   />
                   <ReadOnlyField
                     label="Memory"
                     fieldId="deployment-memory"
-                    value={memory || NOT_SET}
+                    value={model?.hardwareProfile ? BY_PROFILE : memory || NOT_SET}
                     reason={fixedReason.resources}
                   />
                   <ReadOnlyField
                     label="GPUs"
                     fieldId="deployment-gpus"
-                    value={gpuCount}
+                    value={model?.hardwareProfile ? BY_PROFILE : gpuCount}
                     reason={fixedReason.resources}
                   />
                 </>
-              ) : (
+              ) : profile ? null : (
                 <>
                   <FormGroup label="CPU" fieldId="deployment-cpu" isRequired>
                     <TextInput

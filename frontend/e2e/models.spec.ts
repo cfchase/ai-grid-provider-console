@@ -56,7 +56,7 @@ test('deploys a model to a cluster, edits it in the same wizard, and deletes it'
   await expect(page.getByRole('textbox', { name: /^Model name/ })).toHaveValue(unique);
   await page.getByRole('textbox', { name: /^Runtime image/ }).fill('quay.io/example/runtime:latest');
   // The model server has no default.
-  await page.getByRole('combobox', { name: 'Model server' }).selectOption({ label: 'vLLM on CPU' });
+  await page.getByRole('combobox', { name: 'Model server' }).selectOption({ label: 'vLLM CPU' });
   await page.getByRole('button', { name: 'Next' }).click();
 
   // Locations: options read "<site name> (<cluster>)", from Models/ListPlacementClusters.

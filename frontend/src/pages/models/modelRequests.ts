@@ -30,6 +30,13 @@ export type ModelInput = {
   /** The model server's presets (spec.base_refs); empty for KServe's default. */
   baseRefs: string[];
   /**
+   * The HardwareProfile to run with (spec.hardware_profile). With one, the profile sets the
+   * resources, so cpu, memory and gpuCount aren't sent.
+   */
+  hardwareProfile?: string;
+  /** The resource gpuCount asks for: the model server's accelerator. Default nvidia.com/gpu. */
+  gpuResource?: string;
+  /**
    * The clusters to place the model on, by name, from Models/ListPlacementClusters; not
    * `location` labels, which status.placement.locations reports.
    */
@@ -41,12 +48,18 @@ export const namedPlacement = (clusters: string[]): PlacementInit => ({
   labelSelector: { matchExpressions: [{ key: 'name', operator: 'In', values: [...clusters] }] },
 });
 
-/** The main container's requests the wizard sets; a GPU count of 0 asks for none. */
-const requestsOf = (input: ModelInput): Record<string, string> => ({
-  ...(input.cpu ? { cpu: input.cpu } : {}),
-  ...(input.memory ? { memory: input.memory } : {}),
-  ...(input.gpuCount > 0 ? { [REQUEST_GPU]: String(input.gpuCount) } : {}),
-});
+/**
+ * The main container's requests the wizard sets; a GPU count of 0 asks for none. None with a
+ * hardware profile, which sets them on each cluster (the backend refuses both).
+ */
+const requestsOf = (input: ModelInput): Record<string, string> =>
+  input.hardwareProfile
+    ? {}
+    : {
+        ...(input.cpu ? { cpu: input.cpu } : {}),
+        ...(input.memory ? { memory: input.memory } : {}),
+        ...(input.gpuCount > 0 ? { [input.gpuResource ?? REQUEST_GPU]: String(input.gpuCount) } : {}),
+      };
 
 export const createRequestOf = (input: ModelInput): MessageInitShape<typeof ModelsCreateRequestSchema> => {
   const displayName = input.displayName.trim();
@@ -67,6 +80,7 @@ export const createRequestOf = (input: ModelInput): MessageInitShape<typeof Mode
         model: { uri: input.modelUri },
         replicas: input.replicas,
         baseRefs: [...input.baseRefs],
+        ...(input.hardwareProfile ? { hardwareProfile: { name: input.hardwareProfile } } : {}),
         main: {
           image: input.runtimeImage.trim(),
           requests: requestsOf(input),

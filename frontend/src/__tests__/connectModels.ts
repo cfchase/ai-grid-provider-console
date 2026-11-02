@@ -10,6 +10,10 @@ import { clone, create, type MessageInitShape } from '@bufbuild/protobuf';
 import { timestampFromDate } from '@bufbuild/protobuf/wkt';
 import { Code, ConnectError } from '@connectrpc/connect';
 import type { FakeBackend } from '../api/connect/testing';
+import {
+  ModelsListServingOptionsResponseSchema,
+  type ModelsListServingOptionsResponse,
+} from '../gen/ai_grid/v1/models_service_pb';
 import type { GridCluster } from '../api/types';
 import { MetadataSchema } from '../gen/ai_grid/v1/metadata_type_pb';
 import {
@@ -109,7 +113,10 @@ export const subscriptionUsing = (id: string, modelIds: string[], displayName?: 
 const filteredModelId = (filter: string | undefined) => /r\.model_id == "([^"]+)"/.exec(filter ?? '')?.[1];
 
 type Impl = Required<
-  Pick<NonNullable<FakeBackend['models']>, 'list' | 'get' | 'listPlacementClusters' | 'create' | 'update' | 'delete'>
+  Pick<
+    NonNullable<FakeBackend['models']>,
+    'list' | 'get' | 'listPlacementClusters' | 'listServingOptions' | 'create' | 'update' | 'delete'
+  >
 >;
 
 /** The in-memory Models backend, over a service's clusters (for the placement's locations). */
@@ -121,6 +128,36 @@ export class FakeModels {
 
   /** Models/ListPlacementClusters; a test replaces it to change what the wizard offers. */
   placementClusters = async (): Promise<string[]> => placeableClustersOf(this.source.clusters);
+
+  /**
+   * Models/ListServingOptions: a CPU and an NVIDIA preset and the default profile, from the chart's
+   * defaults (charts/ai-grid-provider-console/values.yaml); a test replaces it to offer others.
+   */
+  servingOptions: ModelsListServingOptionsResponse = create(ModelsListServingOptionsResponseSchema, {
+    modelServers: [
+      {
+        name: 'v3-6-0-kserve-config-llm-template-cpu',
+        displayName: 'vLLM CPU',
+        description: 'vLLM on x86_64 CPU-only nodes.',
+        accelerators: [],
+      },
+      {
+        name: 'v3-6-0-kserve-config-llm-single-node-template-nvidia-cuda',
+        displayName: 'vLLM NVIDIA GPU',
+        description: 'vLLM with NVIDIA CUDA GPUs, on one node.',
+        accelerators: ['nvidia.com/gpu'],
+      },
+    ],
+    hardwareProfiles: [
+      {
+        name: 'default-profile',
+        namespace: 'redhat-ods-applications',
+        displayName: 'Default profile',
+        description: '2 CPUs and 4 GiB of memory.',
+        resources: ['cpu', 'memory'],
+      },
+    ],
+  });
 
   find = (id: string): Model => {
     const model = this.models.find((m) => m.id === id);
@@ -181,6 +218,7 @@ export class FakeModels {
   };
   get: Impl['get'] = ({ id }) => ({ object: this.find(id) });
   listPlacementClusters: Impl['listPlacementClusters'] = async () => ({ clusters: await this.placementClusters() });
+  listServingOptions: Impl['listServingOptions'] = () => this.servingOptions;
   create: Impl['create'] = async ({ object }) => {
     const id = object?.id ?? '';
     if (this.models.some((m) => m.id === id)) {
@@ -273,6 +311,7 @@ export class FakeModels {
     list: (req, ctx) => this.list(req, ctx),
     get: (req, ctx) => this.get(req, ctx),
     listPlacementClusters: (req, ctx) => this.listPlacementClusters(req, ctx),
+    listServingOptions: (req, ctx) => this.listServingOptions(req, ctx),
     create: (req, ctx) => this.create(req, ctx),
     update: (req, ctx) => this.update(req, ctx),
     delete: (req, ctx) => this.delete(req, ctx),

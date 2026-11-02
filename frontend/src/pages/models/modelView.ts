@@ -52,6 +52,8 @@ export type ModelView = {
   runtimeImage?: string;
   /** The LLMInferenceServiceConfig presets the model is built on; empty for KServe's default. */
   baseRefs: string[];
+  /** The HardwareProfile that sets the model's resources on each cluster (spec.hardware_profile). */
+  hardwareProfile?: string;
   replicas?: number;
   /** KEDA scales the model (spec.scaling), so it has no fixed replica count. */
   autoscaled: boolean;
@@ -132,7 +134,9 @@ export const toModelView = (model: Model): ModelView => {
   const spec = model.spec;
   const requests = spec?.main?.requests ?? {};
   const status = model.status;
-  const gpu = requests[REQUEST_GPU];
+  // The model's accelerator count: nvidia.com/gpu, or another extended resource such as
+  // amd.com/gpu (cpu, memory and the other built-in resources have no "/").
+  const gpu = requests[REQUEST_GPU] ?? Object.entries(requests).find(([key]) => key.includes('/'))?.[1];
   const created = model.metadata?.creationTimestamp;
   return {
     id: model.id,
@@ -142,6 +146,7 @@ export const toModelView = (model: Model): ModelView => {
     modelUri: nonEmpty(spec?.model?.uri),
     runtimeImage: nonEmpty(spec?.main?.image),
     baseRefs: [...(spec?.baseRefs ?? [])],
+    hardwareProfile: nonEmpty(spec?.hardwareProfile?.name),
     replicas: spec?.replicas,
     autoscaled: spec?.scaling !== undefined,
     cpu: nonEmpty(requests[REQUEST_CPU]),
