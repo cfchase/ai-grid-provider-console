@@ -42,14 +42,19 @@ Replace `CLIENT_SECRET` with the client secret from the organization's identity 
 
 - `backend.idpSecrets.namespace` moves it to another namespace. Keep only identity provider client
   secrets in it, because the backend can get every Secret there. The chart refuses the release
-  namespace, which holds the console's own credentials.
+  namespace, which holds the console's own credentials, and the system namespaces `default`,
+  `kube-*` and `openshift*`.
+- By default the chart creates the namespace. Helm keeps it on uninstall, so the Secrets in it
+  survive, and Argo CD keeps it too: it doesn't prune it or delete it with the Application. A kept
+  namespace still belongs to the release that created it, so installing under another release name
+  or namespace needs `createNamespace=false`.
 - `backend.idpSecrets.createNamespace=false` uses a namespace that already exists or something else
-  owns. Helm keeps the namespace it creates on uninstall, so the Secrets in it survive. Argo CD keeps it
-  too: it doesn't prune it or delete it with the Application.
-- `backend.idpSecrets.enabled=false` renders none of this. Creating an organization with an identity
-  provider then fails.
+  owns, such as one a GitOps repository creates. The chart then adds only the Role and RoleBinding.
+- `backend.idpSecrets.enabled=false` renders none of this, and the backend uses its default namespace,
+  `ai-grid-idp-secrets`. Creating an organization with an identity provider then fails, unless that
+  namespace and a `get` Role for the console's ServiceAccount exist some other way.
 
-`manifests/idp-secrets` holds the same objects for an install from `manifests/base`.
+`manifests/idp-secrets` is kept equal to the chart's defaults, beside `manifests/base`.
 
 ## Timeouts
 

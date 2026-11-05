@@ -6,6 +6,8 @@ metadata:
   name: ai-grid-idp-secrets
   labels:
     app.kubernetes.io/component: idp-secrets
+  annotations:
+    argocd.argoproj.io/sync-options: Delete=false,Prune=false
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role

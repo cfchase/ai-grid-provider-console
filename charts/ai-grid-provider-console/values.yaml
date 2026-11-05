@@ -140,13 +140,14 @@ backend:
   # creates by hand in this namespace before creating the organization. The backend reads the
   # namespace from AI_GRID_IDP_SECRET_NAMESPACE (ai-grid-provider-backend
   # cmd/ai-grid-provider-backend/main.go) and gets those Secrets by name; it can't list, watch or
-  # write them, there or anywhere else. Off: no namespace and no Role, and creating an
-  # organization with an identity provider fails.
+  # write them, there or anywhere else. Off: no namespace and no Role, so creating an
+  # organization with an identity provider fails unless the backend's default namespace and a
+  # get Role exist some other way.
   idpSecrets:
     enabled: true
     # Sets the backend's AI_GRID_IDP_SECRET_NAMESPACE. The backend can get every Secret in this
-    # namespace, so keep only IdP client secrets in it. It can't be the release namespace: the
-    # render fails.
+    # namespace, so keep only IdP client secrets in it. It can't be the release namespace or a
+    # system one (default, kube-*, openshift*): the render fails.
     namespace: ai-grid-idp-secrets
     # Create the namespace. Helm keeps it on uninstall (helm.sh/resource-policy: keep), so the
     # Secrets in it survive. Set false when the namespace already exists or something else owns it.
