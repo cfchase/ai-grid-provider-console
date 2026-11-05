@@ -239,13 +239,19 @@ refused "backend.idpSecrets.namespace=Not_A_Namespace" --set-string backend.idpS
 refused "backend.idpSecrets.namespace empty" --set-string backend.idpSecrets.namespace=
 # A null namespace would get past the release-namespace guard and put the Role in the release namespace.
 refused "backend.idpSecrets.namespace=null" --set backend.idpSecrets.namespace=null --set backend.idpSecrets.createNamespace=false
-# The backend can get every Secret in that namespace, so it must not be the console's own.
-if out="$(helm template console "${CHART}" -n ai-grid --set backend.idpSecrets.namespace=ai-grid \
-  --set backend.idpSecrets.createNamespace=false 2>&1 >/dev/null)" ||
-  ! grep -q 'backend.idpSecrets.namespace must not be the release namespace "ai-grid"' <<<"${out}"; then
-  echo "check-chart: backend.idpSecrets.namespace equal to the release namespace must fail the render: ${out}" >&2
-  exit 1
-fi
+# The backend can get every Secret in that namespace, so it must not be the console's own or a system one.
+# The guards run before any object renders, whether or not the chart creates the namespace.
+for args in "ai-grid true release" "ai-grid false release" "default false system" "kube-system false system" \
+  "openshift-gitops false system" "openshift-gitops true system"; do
+  read -r ns create kind <<<"${args}"
+  if out="$(helm template console "${CHART}" -n ai-grid --set "backend.idpSecrets.namespace=${ns}" \
+    --set "backend.idpSecrets.createNamespace=${create}" 2>&1 >/dev/null)" ||
+    ! grep -q "backend.idpSecrets.namespace must not be .*namespace \"${ns}\"" <<<"${out}" ||
+    ! grep -q "${kind} namespace" <<<"${out}"; then
+    echo "check-chart: backend.idpSecrets.namespace=${ns} (createNamespace=${create}) must fail the render as a ${kind} namespace: ${out}" >&2
+    exit 1
+  fi
+done
 refused "authProxy.upstreamTimeout=65" --set-string authProxy.upstreamTimeout=65
 
 echo "check-chart: lint passes; the chart's defaults render manifests/base"
